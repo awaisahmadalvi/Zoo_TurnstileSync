@@ -7,12 +7,37 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Net.Http;
 
 
 using System.Runtime.InteropServices;
+using System.Net.Http.Headers;
+using Newtonsoft.Json;
 
 namespace zooTurnstileSync
 {
+    public class ticket
+    {
+        public string ticket_id { get; set; }
+        public string qr_code { get; set; }
+    }
+
+    public class syncback
+    {
+        public List<string> ticket_id { get; set; }
+    }
+    public class syncbackdelete
+    {
+        public string ticket_id { get; set; }
+    }
+    public class newTickets
+    {
+        public string status { get; set; }
+        public string message { get; set; }
+        public List<ticket> data { get; set; }
+            
+    
+    }
     public partial class Form1 : Form
     {
         string ip;
@@ -54,8 +79,9 @@ namespace zooTurnstileSync
 
             a = time.ToString("hh:mm:ss") + "    " + a + "\r\n";
 
-            inputStatus.SelectedText = a;
             inputStatus.SelectionColor = color;
+            inputStatus.SelectedText = a;
+            
         }
 
 
@@ -84,7 +110,7 @@ namespace zooTurnstileSync
                 Cursor = Cursors.Default;
                 if (h != IntPtr.Zero)
                 {
-                    logtext("connection is successfull",Color.Black);
+                    logtext("connection is successfull",Color.Green);
                     btnConnect.Text = "Disconnect";
                     lblConnectionStatus.Text = "Connected";
                     timerSync.Interval = Int32.Parse(timeToUpdate)*1000;
@@ -140,7 +166,10 @@ namespace zooTurnstileSync
         {
             logtext("API check for new Entries Started",Color.Black);
 
-            string[,] tickets = new string[,]
+            apiCheckForNewEntries();
+            
+            // dummy data
+            /*string[,] tickets = new string[,]
             {
                 {"6", "543268"},
                 {"7", "543212"},
@@ -155,6 +184,7 @@ namespace zooTurnstileSync
 
                 addTicketToController(ticketNo, cardNo);
             }
+            */
 
         }
 
@@ -164,7 +194,7 @@ namespace zooTurnstileSync
         [DllImport("plcommpro.dll", EntryPoint = "SetDeviceData")]
         public static extern int SetDeviceData(IntPtr h, string tablename, string data, string options);
 
-        void addTicketToController(string tn,string cn)
+        bool addTicketToController(string tn,string cn)
         {
             int ret = 0;
             string data = "Pin="+tn+"\tCardNo="+cn+"\tPassword=1";
@@ -177,29 +207,33 @@ namespace zooTurnstileSync
                 ret = SetDeviceData(h, "user", data, options);
                 if (ret >= 0)
                 {
-                    logtext("Card No "+cn+" add successfully",Color.Black);
+                    //logtext("Card No "+cn+" add successfully",Color.Black);
                     //adding access
                     
                     int secret = SetDeviceData(h, "userauthorize", accessData, options);
                     if (secret >= 0)
                     {
-                        logtext("Card No " + cn + " access granted", Color.Black);
+                        // logtext("Card No " + cn + " access granted", Color.Black);
+                        return true;
                     }
                     else
                     {
-                        logtext("--> Card no " + cn + " access not granted error="+secret, Color.Red);
+                        //logtext("--> Card no " + cn + " access not granted error="+secret, Color.Red);
+                        return false;
                     }
                     
-                    // call sync added record api
-                    return;
                 }
                 else
-                    logtext("--> Card no "+cn+" not added",Color.Red);
+                {
+                    //logtext("--> Card no " + cn + " not added", Color.Red);
+                    return false;
+                }
+                    
             }
             else
             {
-                logtext("device not conneted",Color.Red);
-                return;
+                //logtext("device not conneted",Color.Red);
+                return false ;
             }
             
         }
@@ -277,6 +311,7 @@ namespace zooTurnstileSync
                     if (secret >= 0)
                     {
                         logtext("card no " + eCard + " access is removed", Color.Black);
+                        syncDelete(ePin);
                     }
                     else
                     {
@@ -288,6 +323,109 @@ namespace zooTurnstileSync
                     logtext("card no "+eCard+" is not removed from device. error "+ret,Color.Red);
             }
             
+        }
+
+
+
+        //************************************* API Functions ****************************************
+        void apiCheckForNewEntries()
+        {
+
+            String resp = httpExecution("http://zims.punjab.gov.pk/api/ticket/get_sync_record/","");
+            if (resp != "")
+            {
+
+
+                var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
+
+                if (jsonObj.status == "success")
+                {
+                    List<String> addedTickets = new List<String>();
+
+                    foreach (ticket t in jsonObj.data)
+                    {
+                        //logtext(t.ticket_id + " " + t.qr_code + " has been read in recieved data", Color.Green);
+                        if (addTicketToController(t.ticket_id, t.qr_code))
+                        {
+                            addedTickets.Add(t.ticket_id);
+                            logtext("Ticket added to controller: "+  t.ticket_id,Color.Green);
+                        }
+                    }
+                    if (addedTickets.Any())
+                    {
+                        SyncBackAddedTickets(addedTickets);
+                    }
+                }
+            }
+        }
+
+        private void SyncBackAddedTickets(List<string> addedTickets)
+        {
+            syncback sb = new syncback();
+            sb.ticket_id = addedTickets;
+            var json = JsonConvert.SerializeObject(sb);
+
+            String resp = httpExecution("http://zims.punjab.gov.pk/api/ticket/update_sync_record/", json);
+            if (resp != "")
+            {
+
+
+                var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
+
+                if (jsonObj.status == "success")
+                {
+                    logtext("added tickets synced back", Color.Green);
+                }
+
+            }
+        }
+
+        private void syncDelete(string pin)
+        {
+            syncbackdelete sb = new syncbackdelete();
+            sb.ticket_id = pin;
+            var json = JsonConvert.SerializeObject(sb);
+
+            String resp = httpExecution("http://zims.punjab.gov.pk/api/ticket/update_qr_status/", json);
+            if (resp != "")
+            {
+
+
+                var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
+
+                if (jsonObj.status == "success")
+                {
+                    logtext("ticket removed from server", Color.Green);
+                } 
+                else
+                {
+                    logtext("--> error: ticket removed from server no status success", Color.Red);
+                }
+
+            }
+            else
+            {
+                logtext("--> error: ticket removed from server no resp", Color.Red);
+            }
+        }
+
+        String httpExecution(string url,string body)
+        {
+            HttpClient client = new HttpClient();
+            client.BaseAddress = new Uri(url);
+            client.DefaultRequestHeaders.Add("TOKEN", "12345");
+            client.DefaultRequestHeaders.Add("KEY", "012ea63f-7046-45c3-a0f9-cec86e05d104");
+            client.DefaultRequestHeaders.Add("TITLE", "ZIMS-Application");
+            client.DefaultRequestHeaders
+                  .Accept
+                  .Add(new MediaTypeWithQualityHeaderValue("application/json"));//ACCEPT header
+
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "relativeAddress");
+            request.Content = new StringContent(body,Encoding.UTF8,"application/json");//CONTENT-TYPE header
+            
+            HttpResponseMessage response = client.SendAsync(request).Result;
+
+            return response.Content.ReadAsStringAsync().Result;
         }
     }
 }
