@@ -38,6 +38,14 @@ namespace zooTurnstileSync
             
     
     }
+    public class delTicketServerMsg
+    {
+        public string ticket_id { get; set; }
+        public string status { get; set; }
+        public string message { get; set; }
+
+
+    }
     public partial class Form1 : Form
     {
         string ip;
@@ -382,16 +390,19 @@ namespace zooTurnstileSync
 
         private void syncDelete(string pin)
         {
-            syncbackdelete sb = new syncbackdelete();
+            /*syncbackdelete sb = new syncbackdelete();
             sb.ticket_id = pin;
-            var json = JsonConvert.SerializeObject(sb);
-
-            String resp = httpExecution("http://zims.punjab.gov.pk/api/ticket/update_qr_status/", json);
+            var json = JsonConvert.SerializeObject(sb);*/
+            
+           
+            String resp = httpExecution("http://zims.punjab.gov.pk/api/ticket/update_qr_status?ticket_id=" + pin, "");
+            
             if (resp != "")
             {
 
+                //logtext(resp,Color.Black);
 
-                var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
+                var jsonObj = JsonConvert.DeserializeObject<delTicketServerMsg>(resp);
 
                 if (jsonObj.status == "success")
                 {
@@ -419,11 +430,13 @@ namespace zooTurnstileSync
             client.DefaultRequestHeaders
                   .Accept
                   .Add(new MediaTypeWithQualityHeaderValue("application/json"));//ACCEPT header
-
-            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "relativeAddress");
+            
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, url);
             request.Content = new StringContent(body,Encoding.UTF8,"application/json");//CONTENT-TYPE header
             
             HttpResponseMessage response = client.SendAsync(request).Result;
+
+            //MessageBox.Show(response.ReasonPhrase.ToString());
 
             return response.Content.ReadAsStringAsync().Result;
         }
