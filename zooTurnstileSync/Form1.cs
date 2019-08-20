@@ -339,7 +339,7 @@ namespace zooTurnstileSync
         void apiCheckForNewEntries()
         {
 
-            String resp = httpExecution("http://zims.punjab.gov.pk/api/ticket/get_sync_record/","");
+            String resp = httpExecution("https://zims.punjab.gov.pk/apis/ticket/get_sync_record/", "");
             if (resp != "")
             {
 
@@ -373,7 +373,7 @@ namespace zooTurnstileSync
             sb.ticket_id = addedTickets;
             var json = JsonConvert.SerializeObject(sb);
 
-            String resp = httpExecution("http://zims.punjab.gov.pk/api/ticket/update_sync_record/", json);
+            String resp = httpExecution("https://zims.punjab.gov.pk/apis/ticket/update_sync_record/", json);
             if (resp != "")
             {
 
@@ -390,12 +390,12 @@ namespace zooTurnstileSync
 
         private void syncDelete(string pin)
         {
-            /*syncbackdelete sb = new syncbackdelete();
+            syncbackdelete sb = new syncbackdelete();
             sb.ticket_id = pin;
-            var json = JsonConvert.SerializeObject(sb);*/
+            var json = JsonConvert.SerializeObject(sb);
             
            
-            String resp = httpExecution("http://zims.punjab.gov.pk/api/ticket/update_qr_status?ticket_id=" + pin, "");
+            String resp = httpExecution("https://zims.punjab.gov.pk/apis/ticket/update_qr_status",json);
             
             if (resp != "")
             {
@@ -427,6 +427,7 @@ namespace zooTurnstileSync
             client.DefaultRequestHeaders.Add("TOKEN", "12345");
             client.DefaultRequestHeaders.Add("KEY", "012ea63f-7046-45c3-a0f9-cec86e05d104");
             client.DefaultRequestHeaders.Add("TITLE", "ZIMS-Application");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT x.y; rv:10.0) Gecko/20100101 Firefox/10.0");
             client.DefaultRequestHeaders
                   .Accept
                   .Add(new MediaTypeWithQualityHeaderValue("application/json"));//ACCEPT header
