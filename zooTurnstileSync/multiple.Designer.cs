@@ -318,7 +318,7 @@
             // 
             // timerRTLog
             // 
-            this.timerRTLog.Interval = 3;
+            this.timerRTLog.Interval = 2;
             this.timerRTLog.Tick += new System.EventHandler(this.timerRTLog_Tick);
             // 
             // multiple
