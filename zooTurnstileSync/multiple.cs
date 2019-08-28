@@ -14,19 +14,21 @@ using System.Runtime.InteropServices;
 using System.Net.Http.Headers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Net;
 
 namespace zooTurnstileSync
 {
     public partial class multiple : Form
     {
+
+        // API string: https://zims.punjab.gov.pk/apis/ticket/
+
         int[] devices = { };
         string[] ip;
         string port="4370";
-        string api=null;
 
         int newCheckTime = 15;
-        int rtLogTime = 3;
-
+        int rtLogTime = 2;
         Label[] Lbl;
         IntPtr[] h= { IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero };
 
@@ -35,6 +37,7 @@ namespace zooTurnstileSync
             InitializeComponent();
             logtext("Program Started @ " + DateTime.Now.ToString("MM/dd/yyyy hh:mm tt") );
             Lbl = new Label [6] { status1, status2, status3, status4, status5, status6 };
+            timerStart.Start();
 
         }
 
@@ -49,6 +52,11 @@ namespace zooTurnstileSync
             // Log file named after date
             string logPath = String.Format("{0}_{1:yyyy-MM-dd}.txt", "log", DateTime.Now);;
 
+            tbLogs.SelectionStart = 0;
+            tbLogs.SelectionLength = 0;
+            //tbLogs.SelectionColor = color;
+            tbLogs.SelectedText = logMessage;
+
             using (var str = new StreamWriter(logPath, append: true))
             {
                 str.WriteLine(logMessage);
@@ -56,33 +64,40 @@ namespace zooTurnstileSync
             }
         }
 
-        private void btnStart_Click(object sender, EventArgs e)
-        {   
-            // get all ips
-            ip =new string[]{
-                    inputIp1.Text.ToString(),
-                    inputIp2.Text.ToString(),
-                    inputIp3.Text.ToString(),
-                    inputIp4.Text.ToString(),
-                    inputIp5.Text.ToString(),
-                    inputIp6.Text.ToString()
-                };
+        //4.2 call Disconnect function
+        [DllImport("plcommpro.dll", EntryPoint = "Disconnect")]
+        public static extern void Disconnect(IntPtr h);
 
-            List<int> tempActiveDevices = new List<int>();
-            for (int i=0; i<ip.Length;i++)
+        private void btnStart_Click(object sender, EventArgs e)
+        {
+            if(btnStart.Text != "Connect")
             {
-                if (ip[i] != "")
-                {
-                    tempActiveDevices.Add(i);
-                }
+                timerStart.Stop();
+                btnStart.Text = "Connect";
+                return;
+            }
+            foreach(Label l in Lbl)
+            {
+                l.ForeColor = Color.Black;
+                l.Text = "Idle";
             }
 
-            devices=tempActiveDevices.ToArray();
+            timerSync.Stop();
+            timerRTLog.Stop();
+
+            foreach(int d in devices)
+            {
+                Disconnect(h[d]);
+                h[d] = IntPtr.Zero;
+                logtext("Device[" + d + "] Disconnected.");
+            }
+            
+            devices = getConnectableDev();
 
             //h = Enumerable.Repeat(IntPtr.Zero, devices.Length).ToArray();
             foreach (int device in devices)
             {
-                connect(device);
+                connectDevice(device);
             }
 
             // timers
@@ -92,6 +107,30 @@ namespace zooTurnstileSync
             timerRTLog.Interval = rtLogTime * 1000;
             timerRTLog.Start();
         }
+
+        private int[] getConnectableDev()
+        {
+            // get all ips
+            ip = new string[]{
+                    inputIp1.Text.ToString(),
+                    inputIp2.Text.ToString(),
+                    inputIp3.Text.ToString(),
+                    inputIp4.Text.ToString(),
+                    inputIp5.Text.ToString(),
+                    inputIp6.Text.ToString()
+                };
+
+            List<int> tempActiveDevices = new List<int>();
+            for (int i = 0; i < ip.Length; i++)
+            {
+                if (ip[i] != "")
+                {
+                    tempActiveDevices.Add(i);
+                }
+            }
+            return tempActiveDevices.ToArray();
+        }
+
         bool anyConnected()
         {
             foreach (Label l in Lbl)
@@ -101,8 +140,9 @@ namespace zooTurnstileSync
             }
             return false;
         }
-        void changeStatus(int device,string status)
+        void changeStatus(int device,string status, Color clr)
         {
+            Lbl[device].ForeColor = clr;
             Lbl[device].Text = status;
         }
 
@@ -112,7 +152,7 @@ namespace zooTurnstileSync
         [DllImport("plcommpro.dll", EntryPoint = "PullLastError")]
         public static extern int PullLastError();
 
-        void connect(int device)
+        void connectDevice(int device)
         {
             
             string connectionStr = "";
@@ -123,14 +163,14 @@ namespace zooTurnstileSync
             int ret = 0;        // Error ID number
             Cursor = Cursors.WaitCursor;
 
-            if (IntPtr.Zero == h[device])
-            {
+            //if (IntPtr.Zero == h[device])
+            //{
                 h[device] = Connect(connectionStr);
                 //Cursor = Cursors.Default;
                 if (h[device] != IntPtr.Zero)
                 {
-                    logtext("device id "+device+"connection is successfull" );
-                    changeStatus(device, "Connected");
+                    logtext("Device["+device+"]: Connection is Successfull" );
+                    changeStatus(device, "Connected", Color.Green);
 
                     deleteAllExisting(device);
                     checkActiveEntries(device);
@@ -139,19 +179,15 @@ namespace zooTurnstileSync
                 else
                 {
                     ret = PullLastError();
-                    //logtext("Connect device Failed! The error id is: " + ret, Color.Red);
-                    logtext("device id " + device + "Connect device Failed! The error id is: "+ret);
+                    logtext("Device[" + device + "]: Connect device Failed! The error id is: "+ret);
 
                 }
-
-            }
+            //}
             Cursor = Cursors.Default;
         }
 
         //4.7 call GetDeviceData function
-
         
-
         void deleteAllExisting(int device)
         {
             String[] allRecord = getAllExistingData(h[device]);
@@ -253,7 +289,8 @@ namespace zooTurnstileSync
 
         void checkActiveEntries(int device)
         {
-            String resp = httpExecution("https://zims.punjab.gov.pk/apis/ticket/get_active_record/", "");
+            String resp = httpExecution("get_active_record/", "");
+            
             if (resp != "")
             {
                 var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
@@ -282,7 +319,7 @@ namespace zooTurnstileSync
         void CheckNewEntries()
         {
 
-            String resp = httpExecution("https://zims.punjab.gov.pk/apis/ticket/get_sync_record/", "");
+            String resp = httpExecution("get_sync_record/", "");
             if (resp != "")
             {
                 var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
@@ -319,7 +356,8 @@ namespace zooTurnstileSync
             sb.ticket_id = addedTickets;
             var json = JsonConvert.SerializeObject(sb);
 
-            String resp = httpExecution("https://zims.punjab.gov.pk/apis/ticket/update_sync_record/", json);
+            String resp = httpExecution("update_sync_record/", json);
+            
             if (resp != "")
             {
 
@@ -345,11 +383,9 @@ namespace zooTurnstileSync
             byte[] buffer = new byte[256];
             foreach (int device in devices)
             {
-                IntPtr _h = h[device];
-                if (IntPtr.Zero != _h)
+                if (IntPtr.Zero != h[device])
                 {
-
-                    ret = GetRTLog(_h, ref buffer[0], buffersize);
+                    ret = GetRTLog(h[device], ref buffer[0], buffersize);
                     if (ret >= 0)
                     {
                         str = Encoding.Default.GetString(buffer);
@@ -364,7 +400,7 @@ namespace zooTurnstileSync
 
                         if (eAuthorized == "0")
                         {
-                            logtext("PIN=" + ePin + " Card=" + eCard + " verified");
+                            logtext("PIN=" + ePin + " Card=" + eCard + " verified on Device[" + device + "]");
                             foreach (int _device in devices)
                             {
                                 removeTicketFromController(_device, eTime, ePin, eCard);
@@ -377,15 +413,17 @@ namespace zooTurnstileSync
                     else
                     {
                         // device is disconnected in this state
-                        Lbl[device].Text = "Disconnected";
+                        changeStatus(device, "Disconnected", Color.Red);
+                        h[device] = IntPtr.Zero;
+                        //connectDevice(device);
                     }
 
                 }
+                /*
                 else
                 {
-                    logtext("Connect device failed!");
-                    return;
-                }
+                    logtext("Connect failed! Device[" + device + "]");
+                }*/
             }
         }
 
@@ -403,21 +441,21 @@ namespace zooTurnstileSync
                 ret = DeleteDeviceData(h[device], "user", data, options);
                 if (ret >= 0)
                 {
-                    logtext("Ticket no " + ePin + " is removed from Controller.");
+                    logtext("Ticket is removed from Controller[" + device + "]: " + ePin);
                     int secret = DeleteDeviceData(h[device], "userauthorize", data, options);
                     if (secret >= 0)
                     {
-                        logtext("Ticket no " + ePin + " access is removed from Controller[" + device + "].");
+                        logtext("Ticket access is removed from Controller[" + device + "]: " + ePin);
                         //syncDelete(ePin);
                     }
                     else
                     {
-                        logtext("Ticket no " + ePin + " access is not removed from Controller[" + device + "]. --> ERROR: " + secret);
+                        logtext("Ticket access is not removed from Controller[" + device + "]: " + ePin  + ".\t-- > ERROR: " + secret);
                     }
                 }
 
                 else
-                    logtext("Ticket no " + ePin + " is not removed from Controller[" + device + "]. --> ERROR: " + ret);
+                    logtext("Ticket is not removed from Controller[" + device + "]: " + ePin + ".\t --> ERROR: " + ret);
             }
 
         }
@@ -427,8 +465,8 @@ namespace zooTurnstileSync
             sb.ticket_id = pin;
             var json = JsonConvert.SerializeObject(sb);
 
-            //String resp = httpExecution("https://zims.punjab.gov.pk/apis/ticket/update_qr_status?ticket_id=" + pin, "");
-            String resp = httpExecution("https://zims.punjab.gov.pk/apis/ticket/update_qr_status", json);
+            //String resp = httpExecution(tbApi.Text + "update_qr_status?ticket_id=" + pin, "");
+            String resp = httpExecution("update_qr_status", json);
 
             if (resp != "")
             {
@@ -439,21 +477,22 @@ namespace zooTurnstileSync
 
                 if (jsonObj.status == "success")
                 {
-                    logtext("Ticket removed from server");
+                    logtext("Ticket removed from server: " + pin);
                 }
                 else
                 {
-                    logtext("--> ERROR: Ticket removed from server no status success");
+                    logtext("--> ERROR: Ticket removed from server no status success: " + pin);
                 }
 
             }
             else
             {
-                logtext("--> ERROR: Ticket removed from server no resp");
+                logtext("--> ERROR: Ticket removed from server no resp: " + pin);
             }
         }
         String httpExecution(string url, string body)
         {
+            url = getApiUrl() + url;
             HttpClient client = new HttpClient();
             client.BaseAddress = new Uri(url);
             client.DefaultRequestHeaders.Add("TOKEN", "12345");
@@ -467,23 +506,63 @@ namespace zooTurnstileSync
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, url);
             request.Content = new StringContent(body, Encoding.UTF8, "application/json");//CONTENT-TYPE header
 
-            HttpResponseMessage response = client.SendAsync(request).Result;
+            HttpResponseMessage response = null;
+            response = client.SendAsync(request).Result;
 
+            if(response.StatusCode != HttpStatusCode.OK)
+            {
+                logtext("API Error: "+response.ReasonPhrase.ToString());
+                return "";
+            }
             //MessageBox.Show(response.ReasonPhrase.ToString());
-
             return response.Content.ReadAsStringAsync().Result;
+        }
+
+        private string getApiUrl()
+        {
+            return tbApi.Text.ToString();
         }
 
         private void timerSync_Tick(object sender, EventArgs e)
         {
+            foreach(int d in devices)
+            {
+                if(IntPtr.Zero == h[d])
+                {
+                    connectDevice(d);
+                }
+            }
             // Check only if any device is connected
             if (anyConnected())
             {
                 CheckNewEntries();
             }
-            else
+        }
+
+        private void timerStart_Tick(object sender, EventArgs e)
+        {
+            switch (btnStart.Text)
             {
-                // ReConnect Controller
+                case "Connect":
+                    btnStart.Text = "in 5...";
+                    break;
+                case "in 5...":
+                    btnStart.Text = "in 4...";
+                    break;
+                case "in 4...":
+                    btnStart.Text = "in 3...";
+                    break;
+                case "in 3...":
+                    btnStart.Text = "in 2...";
+                    break;
+                case "in 2...":
+                    btnStart.Text = "in 1...";
+                    break;
+                case "in 1...":
+                    btnStart.Text = "Connect";
+                    btnStart.PerformClick();
+                    timerStart.Stop();
+                    break;
             }
         }
     }

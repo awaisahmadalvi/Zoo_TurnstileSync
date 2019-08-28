@@ -252,7 +252,7 @@ namespace zooTurnstileSync
 
         private void rtLogTimer_Tick(object sender, EventArgs e)
         {
-            int ret = 0, i = 0, buffersize = 256;
+            int ret = 0, buffersize = 256;
             string str = "";
             string[] tmp = null;
             byte[] buffer = new byte[256];

@@ -54,6 +54,11 @@
             this.btnStart = new System.Windows.Forms.Button();
             this.timerSync = new System.Windows.Forms.Timer(this.components);
             this.timerRTLog = new System.Windows.Forms.Timer(this.components);
+            this.label10 = new System.Windows.Forms.Label();
+            this.tbApi = new System.Windows.Forms.TextBox();
+            this.tbLogs = new System.Windows.Forms.TextBox();
+            this.label11 = new System.Windows.Forms.Label();
+            this.timerStart = new System.Windows.Forms.Timer(this.components);
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -85,7 +90,7 @@
             this.tableLayoutPanel1.Controls.Add(this.status4, 2, 4);
             this.tableLayoutPanel1.Controls.Add(this.status5, 2, 5);
             this.tableLayoutPanel1.Controls.Add(this.status6, 2, 6);
-            this.tableLayoutPanel1.Location = new System.Drawing.Point(12, 50);
+            this.tableLayoutPanel1.Location = new System.Drawing.Point(12, 39);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
             this.tableLayoutPanel1.RowCount = 7;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 14.28571F));
@@ -198,7 +203,7 @@
             this.inputIp1.Name = "inputIp1";
             this.inputIp1.Size = new System.Drawing.Size(100, 20);
             this.inputIp1.TabIndex = 9;
-            this.inputIp1.Text = "192.168.1.201";
+            this.inputIp1.Text = "192.168.1.200";
             // 
             // inputIp2
             // 
@@ -207,7 +212,7 @@
             this.inputIp2.Name = "inputIp2";
             this.inputIp2.Size = new System.Drawing.Size(100, 20);
             this.inputIp2.TabIndex = 10;
-            this.inputIp2.Text = "192.168.1.202";
+            this.inputIp2.Text = "192.168.1.201";
             // 
             // inputIp3
             // 
@@ -216,6 +221,7 @@
             this.inputIp3.Name = "inputIp3";
             this.inputIp3.Size = new System.Drawing.Size(100, 20);
             this.inputIp3.TabIndex = 11;
+            this.inputIp3.Text = "192.168.1.202";
             // 
             // inputIp4
             // 
@@ -224,6 +230,7 @@
             this.inputIp4.Name = "inputIp4";
             this.inputIp4.Size = new System.Drawing.Size(100, 20);
             this.inputIp4.TabIndex = 12;
+            this.inputIp4.Text = "192.168.1.203";
             // 
             // inputIp5
             // 
@@ -232,6 +239,7 @@
             this.inputIp5.Name = "inputIp5";
             this.inputIp5.Size = new System.Drawing.Size(100, 20);
             this.inputIp5.TabIndex = 13;
+            this.inputIp5.Text = "192.168.1.204";
             // 
             // inputIp6
             // 
@@ -240,6 +248,7 @@
             this.inputIp6.Name = "inputIp6";
             this.inputIp6.Size = new System.Drawing.Size(100, 20);
             this.inputIp6.TabIndex = 14;
+            this.inputIp6.Text = "192.168.1.205";
             // 
             // status1
             // 
@@ -247,9 +256,9 @@
             this.status1.AutoSize = true;
             this.status1.Location = new System.Drawing.Point(245, 77);
             this.status1.Name = "status1";
-            this.status1.Size = new System.Drawing.Size(73, 13);
+            this.status1.Size = new System.Drawing.Size(24, 13);
             this.status1.TabIndex = 15;
-            this.status1.Text = "Disconnected";
+            this.status1.Text = "Idle";
             // 
             // status2
             // 
@@ -257,9 +266,9 @@
             this.status2.AutoSize = true;
             this.status2.Location = new System.Drawing.Point(245, 132);
             this.status2.Name = "status2";
-            this.status2.Size = new System.Drawing.Size(73, 13);
+            this.status2.Size = new System.Drawing.Size(24, 13);
             this.status2.TabIndex = 16;
-            this.status2.Text = "Disconnected";
+            this.status2.Text = "Idle";
             // 
             // status3
             // 
@@ -267,9 +276,9 @@
             this.status3.AutoSize = true;
             this.status3.Location = new System.Drawing.Point(245, 187);
             this.status3.Name = "status3";
-            this.status3.Size = new System.Drawing.Size(73, 13);
+            this.status3.Size = new System.Drawing.Size(24, 13);
             this.status3.TabIndex = 17;
-            this.status3.Text = "Disconnected";
+            this.status3.Text = "Idle";
             // 
             // status4
             // 
@@ -277,9 +286,9 @@
             this.status4.AutoSize = true;
             this.status4.Location = new System.Drawing.Point(245, 242);
             this.status4.Name = "status4";
-            this.status4.Size = new System.Drawing.Size(73, 13);
+            this.status4.Size = new System.Drawing.Size(24, 13);
             this.status4.TabIndex = 18;
-            this.status4.Text = "Disconnected";
+            this.status4.Text = "Idle";
             // 
             // status5
             // 
@@ -287,9 +296,9 @@
             this.status5.AutoSize = true;
             this.status5.Location = new System.Drawing.Point(245, 297);
             this.status5.Name = "status5";
-            this.status5.Size = new System.Drawing.Size(73, 13);
+            this.status5.Size = new System.Drawing.Size(24, 13);
             this.status5.TabIndex = 19;
-            this.status5.Text = "Disconnected";
+            this.status5.Text = "Idle";
             // 
             // status6
             // 
@@ -297,17 +306,17 @@
             this.status6.AutoSize = true;
             this.status6.Location = new System.Drawing.Point(245, 354);
             this.status6.Name = "status6";
-            this.status6.Size = new System.Drawing.Size(73, 13);
+            this.status6.Size = new System.Drawing.Size(24, 13);
             this.status6.TabIndex = 20;
-            this.status6.Text = "Disconnected";
+            this.status6.Text = "Idle";
             // 
             // btnStart
             // 
-            this.btnStart.Location = new System.Drawing.Point(12, 12);
+            this.btnStart.Location = new System.Drawing.Point(302, 10);
             this.btnStart.Name = "btnStart";
-            this.btnStart.Size = new System.Drawing.Size(75, 23);
+            this.btnStart.Size = new System.Drawing.Size(73, 23);
             this.btnStart.TabIndex = 1;
-            this.btnStart.Text = "Start";
+            this.btnStart.Text = "Connect";
             this.btnStart.UseVisualStyleBackColor = true;
             this.btnStart.Click += new System.EventHandler(this.btnStart_Click);
             // 
@@ -321,11 +330,55 @@
             this.timerRTLog.Interval = 2;
             this.timerRTLog.Tick += new System.EventHandler(this.timerRTLog_Tick);
             // 
+            // label10
+            // 
+            this.label10.AutoSize = true;
+            this.label10.Location = new System.Drawing.Point(12, 15);
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(24, 13);
+            this.label10.TabIndex = 2;
+            this.label10.Text = "API";
+            // 
+            // tbApi
+            // 
+            this.tbApi.Location = new System.Drawing.Point(42, 12);
+            this.tbApi.Name = "tbApi";
+            this.tbApi.Size = new System.Drawing.Size(254, 20);
+            this.tbApi.TabIndex = 3;
+            this.tbApi.Text = "https://zims.punjab.gov.pk/apis/ticket/";
+            // 
+            // tbLogs
+            // 
+            this.tbLogs.Location = new System.Drawing.Point(395, 39);
+            this.tbLogs.Multiline = true;
+            this.tbLogs.Name = "tbLogs";
+            this.tbLogs.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.tbLogs.Size = new System.Drawing.Size(346, 391);
+            this.tbLogs.TabIndex = 4;
+            // 
+            // label11
+            // 
+            this.label11.AutoSize = true;
+            this.label11.Location = new System.Drawing.Point(392, 15);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(33, 13);
+            this.label11.TabIndex = 5;
+            this.label11.Text = "Logs:";
+            // 
+            // timerStart
+            // 
+            this.timerStart.Interval = 1000;
+            this.timerStart.Tick += new System.EventHandler(this.timerStart_Tick);
+            // 
             // multiple
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(389, 457);
+            this.ClientSize = new System.Drawing.Size(753, 445);
+            this.Controls.Add(this.label11);
+            this.Controls.Add(this.tbLogs);
+            this.Controls.Add(this.tbApi);
+            this.Controls.Add(this.label10);
             this.Controls.Add(this.btnStart);
             this.Controls.Add(this.tableLayoutPanel1);
             this.Name = "multiple";
@@ -333,6 +386,7 @@
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
@@ -363,5 +417,10 @@
         private System.Windows.Forms.Button btnStart;
         private System.Windows.Forms.Timer timerSync;
         private System.Windows.Forms.Timer timerRTLog;
+        private System.Windows.Forms.Label label10;
+        private System.Windows.Forms.TextBox tbApi;
+        private System.Windows.Forms.TextBox tbLogs;
+        private System.Windows.Forms.Label label11;
+        private System.Windows.Forms.Timer timerStart;
     }
 }
