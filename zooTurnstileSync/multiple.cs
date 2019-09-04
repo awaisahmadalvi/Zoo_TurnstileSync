@@ -507,13 +507,52 @@ namespace zooTurnstileSync
             request.Content = new StringContent(body, Encoding.UTF8, "application/json");//CONTENT-TYPE header
 
             HttpResponseMessage response = null;
-            response = client.SendAsync(request).Result;
-
-            if(response.StatusCode != HttpStatusCode.OK)
+            try
             {
-                logtext("API Error: "+response.ReasonPhrase.ToString());
-                return "";
+                response = client.SendAsync(request).Result;
             }
+            catch (HttpRequestException hre)
+            {
+                logtext("ERROR: " + hre.ToString());
+            }
+            catch (ArgumentNullException ane)
+            {
+                logtext("ERROR: " + ane.ToString());
+            }
+            catch (InvalidOperationException ioe)
+            {
+                logtext("ERROR: " + ioe.ToString());
+            }
+            catch (AggregateException ae)
+            {
+                logtext("ERROR: " + ae.ToString());
+            }
+            catch (Exception ex)
+            {
+                logtext("ERROR: " + ex.ToString());
+            }
+
+
+            if (response == null)
+            {
+                logtext("ERROR: Null response from API.");
+                label12.ForeColor = Color.Red;
+                label12.Text = "Offline";
+                return "";
+
+            }
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                label12.ForeColor = Color.Green;
+                label12.Text = "Online";
+            }
+            else         //if (response.StatusCode != HttpStatusCode.OK)
+            {
+                logtext("API Error: " + response.ReasonPhrase.ToString());
+                label12.ForeColor = Color.Red;
+                label12.Text = "Offline";
+                return "";
+            }            
             //MessageBox.Show(response.ReasonPhrase.ToString());
             return response.Content.ReadAsStringAsync().Result;
         }
