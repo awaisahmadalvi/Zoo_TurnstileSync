@@ -60,7 +60,7 @@
             this.tbLogs = new System.Windows.Forms.TextBox();
             this.label11 = new System.Windows.Forms.Label();
             this.timerStart = new System.Windows.Forms.Timer(this.components);
-            this.label12 = new System.Windows.Forms.Label();
+            this.lblNetStatus = new System.Windows.Forms.Label();
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -372,21 +372,21 @@
             this.timerStart.Interval = 1000;
             this.timerStart.Tick += new System.EventHandler(this.timerStart_Tick);
             // 
-            // label12
+            // lblNetStatus
             // 
-            this.label12.AutoSize = true;
-            this.label12.Location = new System.Drawing.Point(12, 433);
-            this.label12.Name = "label12";
-            this.label12.Size = new System.Drawing.Size(45, 13);
-            this.label12.TabIndex = 6;
-            this.label12.Text = "Inactive";
+            this.lblNetStatus.AutoSize = true;
+            this.lblNetStatus.Location = new System.Drawing.Point(12, 433);
+            this.lblNetStatus.Name = "lblNetStatus";
+            this.lblNetStatus.Size = new System.Drawing.Size(45, 13);
+            this.lblNetStatus.TabIndex = 6;
+            this.lblNetStatus.Text = "Inactive";
             // 
             // multiple
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(753, 454);
-            this.Controls.Add(this.label12);
+            this.Controls.Add(this.lblNetStatus);
             this.Controls.Add(this.label11);
             this.Controls.Add(this.tbLogs);
             this.Controls.Add(this.tbApi);
@@ -436,6 +436,6 @@
         private System.Windows.Forms.TextBox tbLogs;
         private System.Windows.Forms.Label label11;
         private System.Windows.Forms.Timer timerStart;
-        private System.Windows.Forms.Label label12;
+        private System.Windows.Forms.Label lblNetStatus;
     }
 }

@@ -15,14 +15,40 @@ using System.Net.Http.Headers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Net;
+using System.Threading;
 
 namespace zooTurnstileSync
 {
     public partial class multiple : Form
     {
 
+
+        private delegate void SafeCallLog(string logMessage);
+        private delegate void SafeCallStatus(int status);
+
         // API string: https://zims.punjab.gov.pk/apis/ticket/
 
+        [DllImport("plcommpro.dll", EntryPoint = "Disconnect")]
+        public static extern void Disconnect(IntPtr h);
+
+        [DllImport("C:\\WINDOWS\\system32\\plcommpro.dll", EntryPoint = "Connect")]
+        public static extern IntPtr Connect(string Parameters);
+
+        [DllImport("plcommpro.dll", EntryPoint = "PullLastError")]
+        public static extern int PullLastError();
+
+        [DllImport("plcommpro.dll", EntryPoint = "GetDeviceData")]
+        public static extern int GetDeviceData(IntPtr h, ref byte buffer, int buffersize, string tablename, string filename, string filter, string options);
+
+        [DllImport("plcommpro.dll", EntryPoint = "SetDeviceData")]
+        public static extern int SetDeviceData(IntPtr h, string tablename, string data, string options);
+        
+        [DllImport("plcommpro.dll", EntryPoint = "GetRTLog")]
+        public static extern int GetRTLog(IntPtr h, ref byte buffer, int buffersize);
+
+        [DllImport("plcommpro.dll", EntryPoint = "DeleteDeviceData")]
+        public static extern int DeleteDeviceData(IntPtr h, string tablename, string data, string options);
+        
         int[] devices = { };
         string[] ip;
         string port="4370";
@@ -50,12 +76,9 @@ namespace zooTurnstileSync
             logMessage = time.ToString("hh:mm:ss") + "    " + logMessage + "\r\n";
 
             // Log file named after date
-            string logPath = String.Format("{0}_{1:yyyy-MM-dd}.txt", "log", DateTime.Now);;
+            string logPath = String.Format("{0}_{1:yyyy-MM-dd}.txt", "log", DateTime.Now);
 
-            tbLogs.SelectionStart = 0;
-            tbLogs.SelectionLength = 0;
-            //tbLogs.SelectionColor = color;
-            tbLogs.SelectedText = logMessage;
+            WriteTextSafe(logMessage);
 
             using (var str = new StreamWriter(logPath, append: true))
             {
@@ -63,11 +86,21 @@ namespace zooTurnstileSync
                 str.Flush();
             }
         }
-
-        //4.2 call Disconnect function
-        [DllImport("plcommpro.dll", EntryPoint = "Disconnect")]
-        public static extern void Disconnect(IntPtr h);
-
+        private void WriteTextSafe(string logMessage)
+        {
+            if (tbLogs.InvokeRequired)
+            {
+                var d = new SafeCallLog(WriteTextSafe);
+                tbLogs.Invoke(d, new object[] { logMessage });
+            }
+            else
+            {
+                tbLogs.SelectionStart = 0;
+                tbLogs.SelectionLength = 0;
+                //tbLogs.SelectionColor = color;
+                tbLogs.SelectedText = logMessage;
+            }
+        }
         private void btnStart_Click(object sender, EventArgs e)
         {
             if(btnStart.Text != "Connect")
@@ -140,21 +173,15 @@ namespace zooTurnstileSync
             }
             return false;
         }
+
         void changeStatus(int device,string status, Color clr)
         {
             Lbl[device].ForeColor = clr;
             Lbl[device].Text = status;
         }
 
-        [DllImport("C:\\WINDOWS\\system32\\plcommpro.dll", EntryPoint = "Connect")]
-        public static extern IntPtr Connect(string Parameters);
-        
-        [DllImport("plcommpro.dll", EntryPoint = "PullLastError")]
-        public static extern int PullLastError();
-
         void connectDevice(int device)
-        {
-            
+        {   
             string connectionStr = "";
             connectionStr = "protocol=TCP,ipaddress=";
             connectionStr += ip[device];
@@ -165,43 +192,45 @@ namespace zooTurnstileSync
 
             //if (IntPtr.Zero == h[device])
             //{
+            Task.Factory.StartNew(() =>         //This will run using a Thread-Pool thread which will not cause the UI to be unresponsive.
+            {
                 h[device] = Connect(connectionStr);
+            })
+            .ContinueWith(t =>                  //This will run on the UI thread
+            {
                 //Cursor = Cursors.Default;
                 if (h[device] != IntPtr.Zero)
                 {
-                    logtext("Device["+device+"]: Connection is Successfull" );
+                    logtext("Device[" + device + "]: Connection is Successfull");
                     changeStatus(device, "Connected", Color.Green);
-
-                    deleteAllExisting(device);
-                    checkActiveEntries(device);
-                    
+                    Task.Factory.StartNew(() =>         //This will run using a Thread-Pool thread which will not cause the UI to be unresponsive.
+                    {
+                        deleteAllExisting(device);
+                        checkActiveEntries(device);
+                    }, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.FromCurrentSynchronizationContext());
                 }
                 else
                 {
                     ret = PullLastError();
-                    logtext("Device[" + device + "]: Connect device Failed! The error id is: "+ret);
+                    logtext("Device[" + device + "]: Connect device Failed! The error id is: " + ret);
 
                 }
-            //}
-            Cursor = Cursors.Default;
+                Cursor = Cursors.Default;
+            }, CancellationToken.None,
+            TaskContinuationOptions.OnlyOnRanToCompletion, //Only run this if the first action did not throw an exception
+            TaskScheduler.FromCurrentSynchronizationContext()); //Use the UI thread to run this action
         }
 
         //4.7 call GetDeviceData function
-        
         void deleteAllExisting(int device)
         {
+            //logtext("\"deleteAllExisting\" Called.");
             String[] allRecord = getAllExistingData(h[device]);
             foreach (string pin in allRecord)
             {
                 removeTicketFromController(device, "", pin, "");
-
             }
         }
-
-        [DllImport("plcommpro.dll", EntryPoint = "GetDeviceData")]
-        public static extern int GetDeviceData(IntPtr h, ref byte buffer, int buffersize, string tablename, string filename, string filter, string options);
-
-        string strcount = "";
 
         private String[] getAllExistingData(IntPtr h)
         {
@@ -209,6 +238,8 @@ namespace zooTurnstileSync
             int BUFFERSIZE = 1 * 1024 * 1024;
             byte[] buffer = new byte[BUFFERSIZE];
             string options = "";
+            string strcount = "";
+
             if (IntPtr.Zero != h)
             {
                 //MessageBox.Show("str="+str);
@@ -237,12 +268,8 @@ namespace zooTurnstileSync
                 MessageBox.Show("Get data failed.The error is " + ret);
                 return new String[0];
             }
-
         }
-
-        [DllImport("plcommpro.dll", EntryPoint = "SetDeviceData")]
-        public static extern int SetDeviceData(IntPtr h, string tablename, string data, string options);
-
+        
         bool addTicketToController(int devNo, string tn, string cn)
         {
             int ret = 0;
@@ -270,35 +297,33 @@ namespace zooTurnstileSync
                         //logtext("--> Card no " + cn + " access not granted error="+secret, Color.Red);
                         return false;
                     }
-
                 }
                 else
                 {
                     //logtext("--> Card no " + cn + " not added", Color.Red);
                     return false;
                 }
-
             }
             else
             {
                 //logtext("device not conneted",Color.Red);
                 return false;
             }
-
         }
 
         void checkActiveEntries(int device)
         {
-            String resp = httpExecution("get_active_record/", "");
-            
-            if (resp != "")
+            //logtext("\"checkActiveEntries\" Called.");
+            Task.Factory.StartNew(() =>         //This will run using a Thread-Pool thread which will not cause the UI to be unresponsive.
             {
-                var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
-
-                if (jsonObj.status == "success")
+                String resp = httpExecution("get_active_record/", "");
+                if (resp != "")
                 {
-                    List<String> addedTickets = new List<String>();
-                    
+                    var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
+
+                    if (jsonObj.status == "success")
+                    {
+                        List<String> addedTickets = new List<String>();
                         if (IntPtr.Zero != h[device])
                         {
                             foreach (ticket t in jsonObj.data)
@@ -311,72 +336,249 @@ namespace zooTurnstileSync
                                 }
                             }
                         }
-                    
+                    }
                 }
-            }
+            })
+            .ContinueWith(t =>                  //This will run on the UI thread
+            {
+            }, CancellationToken.None,
+                TaskContinuationOptions.OnlyOnRanToCompletion, //Only run this if the first action did not throw an exception
+                TaskScheduler.FromCurrentSynchronizationContext()); //Use the UI thread to run this action
         }
-        
+
         void CheckNewEntries()
         {
-
-            String resp = httpExecution("get_sync_record/", "");
-            if (resp != "")
+            //logtext("\"CheckNewEntries\" Called.");
+            Task.Factory.StartNew(() =>         //This will run using a Thread-Pool thread which will not cause the UI to be unresponsive.
             {
-                var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
-
-                if (jsonObj.status == "success")
+                String resp = httpExecution("get_sync_record/", "");
+                if (resp != "")
                 {
-                    List<String> addedTickets = new List<String>();
-                    foreach (int devNo in devices)
+                    var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
+
+                    if (jsonObj.status == "success")
                     {
-                        if (IntPtr.Zero != h[devNo])
+                        List<String> addedTickets = new List<String>();
+                        foreach (int devNo in devices)
                         {
-                            foreach (ticket t in jsonObj.data)
+                            if (IntPtr.Zero != h[devNo])
                             {
-                                //logtext(t.ticket_id + " " + t.qr_code + " has been read in recieved data", Color.Green);
-                                if (addTicketToController(devNo, t.ticket_id, t.qr_code))
+                                foreach (ticket ticket in jsonObj.data)
                                 {
-                                    addedTickets.Add(t.ticket_id);
-                                    logtext("Ticket added to controller [" + devNo + "] : " + t.ticket_id);
+                                    //logtext(t.ticket_id + " " + t.qr_code + " has been read in recieved data", Color.Green);
+                                    if (addTicketToController(devNo, ticket.ticket_id, ticket.qr_code))
+                                    {
+                                        addedTickets.Add(ticket.ticket_id);
+                                        logtext("Ticket added to controller [" + devNo + "] : " + ticket.ticket_id);
+                                    }
                                 }
                             }
                         }
-                    }
-                    if (addedTickets.Any())
-                    {
-                        SyncBackAddedTickets(addedTickets);
+                        if (addedTickets.Any())
+                        {
+                            SyncBackAddedTickets(addedTickets);
+                        }
                     }
                 }
-            }
+            })
+            .ContinueWith(t =>                  //This will run on the UI thread
+            {
+            }, CancellationToken.None,
+                TaskContinuationOptions.OnlyOnRanToCompletion, //Only run this if the first action did not throw an exception
+                TaskScheduler.FromCurrentSynchronizationContext()); //Use the UI thread to run this action
         }
 
         private void SyncBackAddedTickets(List<string> addedTickets)
         {
+            //logtext("\"SyncBackAddedTickets\" Called.");
             syncback sb = new syncback();
             sb.ticket_id = addedTickets;
             var json = JsonConvert.SerializeObject(sb);
-
-            String resp = httpExecution("update_sync_record/", json);
-            
-            if (resp != "")
+            String resp = null;
+            Task.Factory.StartNew(() =>         //This will run using a Thread-Pool thread which will not cause the UI to be unresponsive.
+            {
+                resp = httpExecution("update_sync_record/", json);
+            })
+            .ContinueWith(t =>                  //This will run on the UI thread
             {
 
-
-                var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
-
-                if (jsonObj.status == "success")
+                if (resp != "")
                 {
-                    logtext("added tickets synced back");
+                    var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
+
+                    if (jsonObj.status == "success")
+                    {
+                        logtext("added tickets synced back");
+                    }
+                }
+            }, CancellationToken.None,
+                TaskContinuationOptions.OnlyOnRanToCompletion, //Only run this if the first action did not throw an exception
+                TaskScheduler.Default);//FromCurrentSynchronizationContext()); //Use the UI thread to run this action
+        }
+
+        void removeTicketFromController(int device, string eTime, string ePin, string eCard)
+        {
+            int ret = 0;
+            string data = "Pin=" + ePin;
+            string options = "";
+
+            if (IntPtr.Zero != h[device])
+            {
+                ret = DeleteDeviceData(h[device], "user", data, options);
+                if (ret >= 0)
+                {
+                    logtext("Ticket is removed from Controller[" + device + "]: " + ePin);
+                    int secret = DeleteDeviceData(h[device], "userauthorize", data, options);
+                    if (secret >= 0)
+                    {
+                        logtext("Ticket access is removed from Controller[" + device + "]: " + ePin);
+                        //syncDelete(ePin);
+                    }
+                    else
+                    {
+                        logtext("Ticket access is not removed from Controller[" + device + "]: " + ePin  + ".\t-- > ERROR: " + secret);
+                    }
                 }
 
+                else
+                    logtext("Ticket is not removed from Controller[" + device + "]: " + ePin + ".\t --> ERROR: " + ret);
             }
         }
 
-        [DllImport("plcommpro.dll", EntryPoint = "GetRTLog")]
-        public static extern int GetRTLog(IntPtr h, ref byte buffer, int buffersize);
+        private void syncDelete(string pin)
+        {
+            syncbackdelete sb = new syncbackdelete();
+            sb.ticket_id = pin;
+            var json = JsonConvert.SerializeObject(sb);
+            String resp = null;
+            //String resp = httpExecution(tbApi.Text + "update_qr_status?ticket_id=" + pin, "");
+            Task.Factory.StartNew(() =>         //This will run using a Thread-Pool thread which will not cause the UI to be unresponsive.
+            {
+                resp = httpExecution("update_qr_status", json);
+            })
+            .ContinueWith(t =>                  //This will run on the UI thread
+            {
+                if (resp != "")
+                {
+
+                    //logtext(resp,Color.Black);
+
+                    var jsonObj = JsonConvert.DeserializeObject<delTicketServerMsg>(resp);
+
+                    if (jsonObj.status == "success")
+                    {
+                        logtext("Ticket removed from server: " + pin);
+                    }
+                    else
+                    {
+                        logtext("--> ERROR: Ticket removed from server no status success: " + pin);
+                    }
+                }
+                else
+                {
+                    logtext("--> ERROR: Ticket removed from server no resp: " + pin);
+                }
+            }, CancellationToken.None,
+                TaskContinuationOptions.OnlyOnRanToCompletion, //Only run this if the first action did not throw an exception
+                TaskScheduler.FromCurrentSynchronizationContext()); //Use the UI thread to run this action
+            
+        }
+
+        String httpExecution(string url, string body)
+        {
+            
+            url = getApiUrl() + url;
+            HttpClient client = new HttpClient();
+            client.BaseAddress = new Uri(url);
+            client.DefaultRequestHeaders.Add("TOKEN", "12345");
+            client.DefaultRequestHeaders.Add("KEY", "012ea63f-7046-45c3-a0f9-cec86e05d104");
+            client.DefaultRequestHeaders.Add("TITLE", "ZIMS-Application");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT x.y; rv:10.0) Gecko/20100101 Firefox/10.0");
+            client.DefaultRequestHeaders
+                  .Accept
+                  .Add(new MediaTypeWithQualityHeaderValue("application/json"));//ACCEPT header
+
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, url);
+            request.Content = new StringContent(body, Encoding.UTF8, "application/json");//CONTENT-TYPE header
+            
+            HttpResponseMessage response = null;
+            try
+            {
+                response = client.SendAsync(request).Result;
+            }
+            catch (HttpRequestException hre)
+            {
+                logtext("ERROR: " + hre.ToString());
+            }
+            catch (ArgumentNullException ane)
+            {
+                logtext("ERROR: " + ane.ToString());
+            }
+            catch (InvalidOperationException ioe)
+            {
+                logtext("ERROR: " + ioe.ToString());
+            }
+            catch (AggregateException ae)
+            {
+                logtext("ERROR: " + ae.ToString());
+            }
+            catch (Exception ex)
+            {
+                logtext("ERROR: " + ex.ToString());
+            }
+                
+            if (response == null)
+            {
+                logtext("ERROR: Null response from API.");
+                lblNetStatusChangeSafe(0);
+                return "";
+
+            }
+            else if (response.StatusCode == HttpStatusCode.OK)
+            {
+                //logtext("API OK");
+                lblNetStatusChangeSafe(1);
+            }
+            else         //if (response.StatusCode != HttpStatusCode.OK)
+            {
+                logtext("API Error: " + response.ReasonPhrase.ToString());
+                lblNetStatusChangeSafe(0);
+                return "";
+            }            
+            //MessageBox.Show(response.ReasonPhrase.ToString());
+            return response.Content.ReadAsStringAsync().Result;
+        }
+        private void lblNetStatusChangeSafe(int status)
+        {
+            if (lblNetStatus.InvokeRequired)
+            {
+                var d = new SafeCallStatus(lblNetStatusChangeSafe);
+                lblNetStatus.Invoke(d, new object[] { status });
+            }
+            else
+            {
+                switch (status)
+                {
+                    case 0:
+                        lblNetStatus.ForeColor = Color.Red;
+                        lblNetStatus.Text = "Offline";
+                        break;
+                    case 1:
+                        lblNetStatus.ForeColor = Color.Green;
+                        lblNetStatus.Text = "Online";
+                        break;
+                }
+            }
+        }
+
+        private string getApiUrl()
+        {
+            return tbApi.Text.ToString();
+        }
 
         private void timerRTLog_Tick(object sender, EventArgs e)
         {
+            //logtext("\"timerRTLog_Tick\" Called.");
             int ret = 0, buffersize = 256;
             string str = "";
             string[] tmp = null;
@@ -408,7 +610,6 @@ namespace zooTurnstileSync
                             syncDelete(ePin);
                             // remove entry api call here
                         }
-
                     }
                     else
                     {
@@ -417,7 +618,6 @@ namespace zooTurnstileSync
                         h[device] = IntPtr.Zero;
                         //connectDevice(device);
                     }
-
                 }
                 /*
                 else
@@ -427,144 +627,10 @@ namespace zooTurnstileSync
             }
         }
 
-        [DllImport("plcommpro.dll", EntryPoint = "DeleteDeviceData")]
-        public static extern int DeleteDeviceData(IntPtr h, string tablename, string data, string options);
-
-        void removeTicketFromController(int device, string eTime, string ePin, string eCard)
-        {
-            int ret = 0;
-            string data = "Pin=" + ePin;
-            string options = "";
-
-            if (IntPtr.Zero != h[device])
-            {
-                ret = DeleteDeviceData(h[device], "user", data, options);
-                if (ret >= 0)
-                {
-                    logtext("Ticket is removed from Controller[" + device + "]: " + ePin);
-                    int secret = DeleteDeviceData(h[device], "userauthorize", data, options);
-                    if (secret >= 0)
-                    {
-                        logtext("Ticket access is removed from Controller[" + device + "]: " + ePin);
-                        //syncDelete(ePin);
-                    }
-                    else
-                    {
-                        logtext("Ticket access is not removed from Controller[" + device + "]: " + ePin  + ".\t-- > ERROR: " + secret);
-                    }
-                }
-
-                else
-                    logtext("Ticket is not removed from Controller[" + device + "]: " + ePin + ".\t --> ERROR: " + ret);
-            }
-
-        }
-        private void syncDelete(string pin)
-        {
-            syncbackdelete sb = new syncbackdelete();
-            sb.ticket_id = pin;
-            var json = JsonConvert.SerializeObject(sb);
-
-            //String resp = httpExecution(tbApi.Text + "update_qr_status?ticket_id=" + pin, "");
-            String resp = httpExecution("update_qr_status", json);
-
-            if (resp != "")
-            {
-
-                //logtext(resp,Color.Black);
-
-                var jsonObj = JsonConvert.DeserializeObject<delTicketServerMsg>(resp);
-
-                if (jsonObj.status == "success")
-                {
-                    logtext("Ticket removed from server: " + pin);
-                }
-                else
-                {
-                    logtext("--> ERROR: Ticket removed from server no status success: " + pin);
-                }
-
-            }
-            else
-            {
-                logtext("--> ERROR: Ticket removed from server no resp: " + pin);
-            }
-        }
-        String httpExecution(string url, string body)
-        {
-            url = getApiUrl() + url;
-            HttpClient client = new HttpClient();
-            client.BaseAddress = new Uri(url);
-            client.DefaultRequestHeaders.Add("TOKEN", "12345");
-            client.DefaultRequestHeaders.Add("KEY", "012ea63f-7046-45c3-a0f9-cec86e05d104");
-            client.DefaultRequestHeaders.Add("TITLE", "ZIMS-Application");
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT x.y; rv:10.0) Gecko/20100101 Firefox/10.0");
-            client.DefaultRequestHeaders
-                  .Accept
-                  .Add(new MediaTypeWithQualityHeaderValue("application/json"));//ACCEPT header
-
-            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, url);
-            request.Content = new StringContent(body, Encoding.UTF8, "application/json");//CONTENT-TYPE header
-
-            HttpResponseMessage response = null;
-            try
-            {
-                response = client.SendAsync(request).Result;
-            }
-            catch (HttpRequestException hre)
-            {
-                logtext("ERROR: " + hre.ToString());
-            }
-            catch (ArgumentNullException ane)
-            {
-                logtext("ERROR: " + ane.ToString());
-            }
-            catch (InvalidOperationException ioe)
-            {
-                logtext("ERROR: " + ioe.ToString());
-            }
-            catch (AggregateException ae)
-            {
-                logtext("ERROR: " + ae.ToString());
-            }
-            catch (Exception ex)
-            {
-                logtext("ERROR: " + ex.ToString());
-            }
-
-
-            if (response == null)
-            {
-                logtext("ERROR: Null response from API.");
-                label12.ForeColor = Color.Red;
-                label12.Text = "Offline";
-                return "";
-
-            }
-            if (response.StatusCode == HttpStatusCode.OK)
-            {
-                label12.ForeColor = Color.Green;
-                label12.Text = "Online";
-            }
-            else         //if (response.StatusCode != HttpStatusCode.OK)
-            {
-                logtext("API Error: " + response.ReasonPhrase.ToString());
-                label12.ForeColor = Color.Red;
-                label12.Text = "Offline";
-                return "";
-            }            
-            //MessageBox.Show(response.ReasonPhrase.ToString());
-            return response.Content.ReadAsStringAsync().Result;
-        }
-
-        private string getApiUrl()
-        {
-            return tbApi.Text.ToString();
-        }
-
         private void timerSync_Tick(object sender, EventArgs e)
         {
-            foreach(int d in devices)
+            //logtext("\"timerSync_Tick\" Called.");
+            foreach (int d in devices)
             {
                 if(IntPtr.Zero == h[d])
                 {
