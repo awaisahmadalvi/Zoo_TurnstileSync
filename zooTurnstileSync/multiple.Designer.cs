@@ -205,7 +205,6 @@
             this.inputIp1.Name = "inputIp1";
             this.inputIp1.Size = new System.Drawing.Size(100, 20);
             this.inputIp1.TabIndex = 9;
-            this.inputIp1.Text = "192.168.1.200";
             // 
             // inputIp2
             // 
@@ -232,7 +231,6 @@
             this.inputIp4.Name = "inputIp4";
             this.inputIp4.Size = new System.Drawing.Size(100, 20);
             this.inputIp4.TabIndex = 12;
-            this.inputIp4.Text = "192.168.1.203";
             // 
             // inputIp5
             // 
@@ -241,7 +239,6 @@
             this.inputIp5.Name = "inputIp5";
             this.inputIp5.Size = new System.Drawing.Size(100, 20);
             this.inputIp5.TabIndex = 13;
-            this.inputIp5.Text = "192.168.1.204";
             // 
             // inputIp6
             // 
@@ -250,7 +247,6 @@
             this.inputIp6.Name = "inputIp6";
             this.inputIp6.Size = new System.Drawing.Size(100, 20);
             this.inputIp6.TabIndex = 14;
-            this.inputIp6.Text = "192.168.1.205";
             // 
             // status1
             // 

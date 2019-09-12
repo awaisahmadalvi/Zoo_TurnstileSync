@@ -43,8 +43,13 @@ namespace zooTurnstileSync
         public string ticket_id { get; set; }
         public string status { get; set; }
         public string message { get; set; }
-
-
+        
+    }
+    public class ticketPunched
+    {
+        public string eTime { get; set; }
+        public string ePin { get; set; }
+        public string eCard { get; set; }
     }
     public partial class Form1 : Form
     {

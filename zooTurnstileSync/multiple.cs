@@ -54,9 +54,12 @@ namespace zooTurnstileSync
         string port="4370";
 
         int newCheckTime = 15;
-        int rtLogTime = 2;
+        int rtLogTime = 1;
         Label[] Lbl;
         IntPtr[] h= { IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero };
+
+        // array of punched tickets to check if these are consumed
+        ticketPunched[] tp;
 
         public multiple()
         {
@@ -64,6 +67,12 @@ namespace zooTurnstileSync
             logtext("Program Started @ " + DateTime.Now.ToString("MM/dd/yyyy hh:mm tt") );
             Lbl = new Label [6] { status1, status2, status3, status4, status5, status6 };
             timerStart.Start();
+
+            tp = new ticketPunched[h.Length];
+            for (int i = 0; i < h.Length; i++)
+            {
+                tp[i] = new ticketPunched();
+            }
 
         }
 
@@ -132,7 +141,7 @@ namespace zooTurnstileSync
             {
                 connectDevice(device);
             }
-
+            
             // timers
             timerSync.Interval = newCheckTime * 1000;
             timerSync.Start();
@@ -598,17 +607,24 @@ namespace zooTurnstileSync
                         string eCard = tmp[2];
                         string eAuthorized = tmp[4];
 
-                        // eAuthorized 0 is correct door opened
-
-                        if (eAuthorized == "0")
+                        // eAuthorized 200 is DOOR OPENED
+                        if (eAuthorized == "200")
                         {
-                            logtext("PIN=" + ePin + " Card=" + eCard + " verified on Device[" + device + "]");
+                            logtext("PIN=" + tp[device].ePin + " Card=" + tp[device].eCard + " consumed on Device[" + device + "]");
                             foreach (int _device in devices)
                             {
-                                removeTicketFromController(_device, eTime, ePin, eCard);
+                                removeTicketFromController(_device, tp[device].eTime, tp[device].ePin, tp[device].eCard);
                             }
-                            syncDelete(ePin);
                             // remove entry api call here
+                            syncDelete(tp[device].ePin);
+                        }
+                        // eAuthorized 0 is Valid Card
+                        else if (eAuthorized == "0")
+                        {
+                            tp[device].eTime = eTime;
+                            tp[device].ePin = ePin;
+                            tp[device].eCard = eCard;
+                            logtext("PIN=" + ePin + " Card=" + eCard + " verified on Device[" + device + "]");
                         }
                     }
                     else
