@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Net.Http;
 using System.IO;
@@ -13,26 +10,23 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Net.Http.Headers;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System.Net;
-using System.Threading;
 
 namespace zooTurnstileSync
 {
     public partial class multiple : Form
     {
-
-
         private delegate void SafeCallLog(string logMessage);
         private delegate void SafeCallStatus(int status);
 
         // API string: https://zims.punjab.gov.pk/apis/ticket/
 
+        //[DllImport("C:\\WINDOWS\\system32\\plcommpro.dll", EntryPoint = "Connect")]
+        [DllImport("plcommpro.dll", EntryPoint = "Connect")]
+        public static extern IntPtr Connect(string Parameters);
+
         [DllImport("plcommpro.dll", EntryPoint = "Disconnect")]
         public static extern void Disconnect(IntPtr h);
-
-        [DllImport("C:\\WINDOWS\\system32\\plcommpro.dll", EntryPoint = "Connect")]
-        public static extern IntPtr Connect(string Parameters);
 
         [DllImport("plcommpro.dll", EntryPoint = "PullLastError")]
         public static extern int PullLastError();
@@ -201,33 +195,21 @@ namespace zooTurnstileSync
 
             //if (IntPtr.Zero == h[device])
             //{
-            Task.Factory.StartNew(() =>         //This will run using a Thread-Pool thread which will not cause the UI to be unresponsive.
+            
+            h[device] = Connect(connectionStr);
+            if (h[device] != IntPtr.Zero)
             {
-                h[device] = Connect(connectionStr);
-            })
-            .ContinueWith(t =>                  //This will run on the UI thread
+                logtext("Device[" + device + "]: Connection is Successfull");
+                changeStatus(device, "Connected", Color.Green);
+                deleteAllExisting(device);
+                checkActiveEntries(device);
+            }
+            else
             {
-                //Cursor = Cursors.Default;
-                if (h[device] != IntPtr.Zero)
-                {
-                    logtext("Device[" + device + "]: Connection is Successfull");
-                    changeStatus(device, "Connected", Color.Green);
-                    Task.Factory.StartNew(() =>         //This will run using a Thread-Pool thread which will not cause the UI to be unresponsive.
-                    {
-                        deleteAllExisting(device);
-                        checkActiveEntries(device);
-                    }, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.FromCurrentSynchronizationContext());
-                }
-                else
-                {
-                    ret = PullLastError();
-                    logtext("Device[" + device + "]: Connect device Failed! The error id is: " + ret);
-
-                }
-                Cursor = Cursors.Default;
-            }, CancellationToken.None,
-            TaskContinuationOptions.OnlyOnRanToCompletion, //Only run this if the first action did not throw an exception
-            TaskScheduler.FromCurrentSynchronizationContext()); //Use the UI thread to run this action
+                ret = PullLastError();
+                logtext("Device[" + device + "]: Connect device Failed! The error id is: " + ret);
+            }
+            Cursor = Cursors.Default;
         }
 
         //4.7 call GetDeviceData function
@@ -323,78 +305,62 @@ namespace zooTurnstileSync
         void checkActiveEntries(int device)
         {
             //logtext("\"checkActiveEntries\" Called.");
-            Task.Factory.StartNew(() =>         //This will run using a Thread-Pool thread which will not cause the UI to be unresponsive.
-            {
                 String resp = httpExecution("get_active_record/", "");
-                if (resp != "")
-                {
-                    var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
+            if (resp != "")
+            {
+                var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
 
-                    if (jsonObj.status == "success")
+                if (jsonObj.status == "success")
+                {
+                    List<String> addedTickets = new List<String>();
+                    if (IntPtr.Zero != h[device])
                     {
-                        List<String> addedTickets = new List<String>();
-                        if (IntPtr.Zero != h[device])
+                        foreach (ticket t in jsonObj.data)
                         {
-                            foreach (ticket t in jsonObj.data)
+                            //logtext(t.ticket_id + " " + t.qr_code + " has been read in recieved data", Color.Green);
+                            if (addTicketToController(device, t.ticket_id, t.qr_code))
                             {
-                                //logtext(t.ticket_id + " " + t.qr_code + " has been read in recieved data", Color.Green);
-                                if (addTicketToController(device, t.ticket_id, t.qr_code))
-                                {
-                                    addedTickets.Add(t.ticket_id);
-                                    logtext("Ticket added to controller [" + device + "] : " + t.ticket_id);
-                                }
+                                addedTickets.Add(t.ticket_id);
+                                logtext("Ticket added to controller [" + device + "] : " + t.ticket_id);
                             }
                         }
                     }
                 }
-            })
-            .ContinueWith(t =>                  //This will run on the UI thread
-            {
-            }, CancellationToken.None,
-                TaskContinuationOptions.OnlyOnRanToCompletion, //Only run this if the first action did not throw an exception
-                TaskScheduler.FromCurrentSynchronizationContext()); //Use the UI thread to run this action
+            }
         }
 
         void CheckNewEntries()
         {
             //logtext("\"CheckNewEntries\" Called.");
-            Task.Factory.StartNew(() =>         //This will run using a Thread-Pool thread which will not cause the UI to be unresponsive.
-            {
                 String resp = httpExecution("get_sync_record/", "");
-                if (resp != "")
-                {
-                    var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
+            if (resp != "")
+            {
+                var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
 
-                    if (jsonObj.status == "success")
+                if (jsonObj.status == "success")
+                {
+                    List<String> addedTickets = new List<String>();
+                    foreach (int devNo in devices)
                     {
-                        List<String> addedTickets = new List<String>();
-                        foreach (int devNo in devices)
+                        if (IntPtr.Zero != h[devNo])
                         {
-                            if (IntPtr.Zero != h[devNo])
+                            foreach (ticket ticket in jsonObj.data)
                             {
-                                foreach (ticket ticket in jsonObj.data)
+                                //logtext(t.ticket_id + " " + t.qr_code + " has been read in recieved data", Color.Green);
+                                if (addTicketToController(devNo, ticket.ticket_id, ticket.qr_code))
                                 {
-                                    //logtext(t.ticket_id + " " + t.qr_code + " has been read in recieved data", Color.Green);
-                                    if (addTicketToController(devNo, ticket.ticket_id, ticket.qr_code))
-                                    {
-                                        addedTickets.Add(ticket.ticket_id);
-                                        logtext("Ticket added to controller [" + devNo + "] : " + ticket.ticket_id);
-                                    }
+                                    addedTickets.Add(ticket.ticket_id);
+                                    logtext("Ticket added to controller [" + devNo + "] : " + ticket.ticket_id);
                                 }
                             }
                         }
-                        if (addedTickets.Any())
-                        {
-                            SyncBackAddedTickets(addedTickets);
-                        }
+                    }
+                    if (addedTickets.Any())
+                    {
+                        SyncBackAddedTickets(addedTickets);
                     }
                 }
-            })
-            .ContinueWith(t =>                  //This will run on the UI thread
-            {
-            }, CancellationToken.None,
-                TaskContinuationOptions.OnlyOnRanToCompletion, //Only run this if the first action did not throw an exception
-                TaskScheduler.FromCurrentSynchronizationContext()); //Use the UI thread to run this action
+            }
         }
 
         private void SyncBackAddedTickets(List<string> addedTickets)
@@ -404,25 +370,16 @@ namespace zooTurnstileSync
             sb.ticket_id = addedTickets;
             var json = JsonConvert.SerializeObject(sb);
             String resp = null;
-            Task.Factory.StartNew(() =>         //This will run using a Thread-Pool thread which will not cause the UI to be unresponsive.
+            resp = httpExecution("update_sync_record/", json);
+            if (resp != "")
             {
-                resp = httpExecution("update_sync_record/", json);
-            })
-            .ContinueWith(t =>                  //This will run on the UI thread
-            {
+                var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
 
-                if (resp != "")
+                if (jsonObj.status == "success")
                 {
-                    var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
-
-                    if (jsonObj.status == "success")
-                    {
-                        logtext("added tickets synced back");
-                    }
+                    logtext("added tickets synced back");
                 }
-            }, CancellationToken.None,
-                TaskContinuationOptions.OnlyOnRanToCompletion, //Only run this if the first action did not throw an exception
-                TaskScheduler.Default);//FromCurrentSynchronizationContext()); //Use the UI thread to run this action
+            }
         }
 
         void removeTicketFromController(int device, string eTime, string ePin, string eCard)
@@ -461,36 +418,27 @@ namespace zooTurnstileSync
             var json = JsonConvert.SerializeObject(sb);
             String resp = null;
             //String resp = httpExecution(tbApi.Text + "update_qr_status?ticket_id=" + pin, "");
-            Task.Factory.StartNew(() =>         //This will run using a Thread-Pool thread which will not cause the UI to be unresponsive.
+            resp = httpExecution("update_qr_status", json);
+            if (resp != "")
             {
-                resp = httpExecution("update_qr_status", json);
-            })
-            .ContinueWith(t =>                  //This will run on the UI thread
-            {
-                if (resp != "")
+
+                //logtext(resp,Color.Black);
+
+                var jsonObj = JsonConvert.DeserializeObject<delTicketServerMsg>(resp);
+
+                if (jsonObj.status == "success")
                 {
-
-                    //logtext(resp,Color.Black);
-
-                    var jsonObj = JsonConvert.DeserializeObject<delTicketServerMsg>(resp);
-
-                    if (jsonObj.status == "success")
-                    {
-                        logtext("Ticket removed from server: " + pin);
-                    }
-                    else
-                    {
-                        logtext("--> ERROR: Ticket removed from server no status success: " + pin);
-                    }
+                    logtext("Ticket removed from server: " + pin);
                 }
                 else
                 {
-                    logtext("--> ERROR: Ticket removed from server no resp: " + pin);
+                    logtext("--> ERROR: Ticket removed from server no status success: " + pin);
                 }
-            }, CancellationToken.None,
-                TaskContinuationOptions.OnlyOnRanToCompletion, //Only run this if the first action did not throw an exception
-                TaskScheduler.FromCurrentSynchronizationContext()); //Use the UI thread to run this action
-            
+            }
+            else
+            {
+                logtext("--> ERROR: Ticket removed from server no resp: " + pin);
+            }
         }
 
         String httpExecution(string url, string body)

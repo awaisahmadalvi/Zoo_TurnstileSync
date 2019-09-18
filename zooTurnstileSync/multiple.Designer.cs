@@ -205,6 +205,7 @@
             this.inputIp1.Name = "inputIp1";
             this.inputIp1.Size = new System.Drawing.Size(100, 20);
             this.inputIp1.TabIndex = 9;
+            this.inputIp1.Text = "192.168.1.200";
             // 
             // inputIp2
             // 
@@ -231,6 +232,7 @@
             this.inputIp4.Name = "inputIp4";
             this.inputIp4.Size = new System.Drawing.Size(100, 20);
             this.inputIp4.TabIndex = 12;
+            this.inputIp4.Text = "192.168.1.203";
             // 
             // inputIp5
             // 
