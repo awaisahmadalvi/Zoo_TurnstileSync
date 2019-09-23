@@ -40,27 +40,27 @@
             this.label7 = new System.Windows.Forms.Label();
             this.label8 = new System.Windows.Forms.Label();
             this.label9 = new System.Windows.Forms.Label();
-            this.inputIp1 = new System.Windows.Forms.TextBox();
-            this.inputIp2 = new System.Windows.Forms.TextBox();
-            this.inputIp3 = new System.Windows.Forms.TextBox();
-            this.inputIp4 = new System.Windows.Forms.TextBox();
-            this.inputIp5 = new System.Windows.Forms.TextBox();
-            this.inputIp6 = new System.Windows.Forms.TextBox();
+            this.label10 = new System.Windows.Forms.Label();
+            this.label11 = new System.Windows.Forms.Label();
             this.status1 = new System.Windows.Forms.Label();
             this.status2 = new System.Windows.Forms.Label();
             this.status3 = new System.Windows.Forms.Label();
             this.status4 = new System.Windows.Forms.Label();
             this.status5 = new System.Windows.Forms.Label();
             this.status6 = new System.Windows.Forms.Label();
+            this.lblNetStatus = new System.Windows.Forms.Label();
+            this.inputIp1 = new System.Windows.Forms.TextBox();
+            this.inputIp2 = new System.Windows.Forms.TextBox();
+            this.inputIp3 = new System.Windows.Forms.TextBox();
+            this.inputIp4 = new System.Windows.Forms.TextBox();
+            this.inputIp5 = new System.Windows.Forms.TextBox();
+            this.inputIp6 = new System.Windows.Forms.TextBox();
+            this.tbApi = new System.Windows.Forms.TextBox();
+            this.tbLogs = new System.Windows.Forms.TextBox();
             this.btnStart = new System.Windows.Forms.Button();
             this.timerSync = new System.Windows.Forms.Timer(this.components);
             this.timerRTLog = new System.Windows.Forms.Timer(this.components);
-            this.label10 = new System.Windows.Forms.Label();
-            this.tbApi = new System.Windows.Forms.TextBox();
-            this.tbLogs = new System.Windows.Forms.TextBox();
-            this.label11 = new System.Windows.Forms.Label();
             this.timerStart = new System.Windows.Forms.Timer(this.components);
-            this.lblNetStatus = new System.Windows.Forms.Label();
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -80,8 +80,6 @@
             this.tableLayoutPanel1.Controls.Add(this.label7, 0, 4);
             this.tableLayoutPanel1.Controls.Add(this.label8, 0, 5);
             this.tableLayoutPanel1.Controls.Add(this.label9, 0, 6);
-            this.tableLayoutPanel1.Controls.Add(this.inputIp1, 1, 1);
-            this.tableLayoutPanel1.Controls.Add(this.inputIp2, 1, 2);
             this.tableLayoutPanel1.Controls.Add(this.inputIp3, 1, 3);
             this.tableLayoutPanel1.Controls.Add(this.inputIp4, 1, 4);
             this.tableLayoutPanel1.Controls.Add(this.inputIp5, 1, 5);
@@ -92,6 +90,8 @@
             this.tableLayoutPanel1.Controls.Add(this.status4, 2, 4);
             this.tableLayoutPanel1.Controls.Add(this.status5, 2, 5);
             this.tableLayoutPanel1.Controls.Add(this.status6, 2, 6);
+            this.tableLayoutPanel1.Controls.Add(this.inputIp2, 1, 2);
+            this.tableLayoutPanel1.Controls.Add(this.inputIp1, 1, 1);
             this.tableLayoutPanel1.Location = new System.Drawing.Point(12, 39);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
             this.tableLayoutPanel1.RowCount = 7;
@@ -146,7 +146,7 @@
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(56, 13);
             this.label4.TabIndex = 3;
-            this.label4.Text = "Device 01";
+            this.label4.Text = "Turnstile 1";
             // 
             // label5
             // 
@@ -156,7 +156,7 @@
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(56, 13);
             this.label5.TabIndex = 4;
-            this.label5.Text = "Device 02";
+            this.label5.Text = "Turnstile 2";
             // 
             // label6
             // 
@@ -166,7 +166,7 @@
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(56, 13);
             this.label6.TabIndex = 5;
-            this.label6.Text = "Device 03";
+            this.label6.Text = "Turnstile 3";
             // 
             // label7
             // 
@@ -176,7 +176,7 @@
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(56, 13);
             this.label7.TabIndex = 6;
-            this.label7.Text = "Device 04";
+            this.label7.Text = "Turnstile 4";
             // 
             // label8
             // 
@@ -186,7 +186,7 @@
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(56, 13);
             this.label8.TabIndex = 7;
-            this.label8.Text = "Device 05";
+            this.label8.Text = "Turnstile 5";
             // 
             // label9
             // 
@@ -196,14 +196,32 @@
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(56, 13);
             this.label9.TabIndex = 8;
-            this.label9.Text = "Device 06";
+            this.label9.Text = "Turnstile 6";
+            // 
+            // label10
+            // 
+            this.label10.AutoSize = true;
+            this.label10.Location = new System.Drawing.Point(12, 15);
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(24, 13);
+            this.label10.TabIndex = 2;
+            this.label10.Text = "API";
+            // 
+            // label11
+            // 
+            this.label11.AutoSize = true;
+            this.label11.Location = new System.Drawing.Point(392, 15);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(33, 13);
+            this.label11.TabIndex = 5;
+            this.label11.Text = "Logs:";
             // 
             // inputIp1
             // 
             this.inputIp1.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.inputIp1.Location = new System.Drawing.Point(125, 73);
             this.inputIp1.Name = "inputIp1";
-            this.inputIp1.Size = new System.Drawing.Size(100, 20);
+            this.inputIp1.Size = new System.Drawing.Size(112, 20);
             this.inputIp1.TabIndex = 9;
             this.inputIp1.Text = "192.168.1.200";
             // 
@@ -212,7 +230,7 @@
             this.inputIp2.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.inputIp2.Location = new System.Drawing.Point(125, 128);
             this.inputIp2.Name = "inputIp2";
-            this.inputIp2.Size = new System.Drawing.Size(100, 20);
+            this.inputIp2.Size = new System.Drawing.Size(112, 20);
             this.inputIp2.TabIndex = 10;
             this.inputIp2.Text = "192.168.1.201";
             // 
@@ -221,7 +239,7 @@
             this.inputIp3.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.inputIp3.Location = new System.Drawing.Point(125, 183);
             this.inputIp3.Name = "inputIp3";
-            this.inputIp3.Size = new System.Drawing.Size(100, 20);
+            this.inputIp3.Size = new System.Drawing.Size(112, 20);
             this.inputIp3.TabIndex = 11;
             this.inputIp3.Text = "192.168.1.202";
             // 
@@ -230,7 +248,7 @@
             this.inputIp4.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.inputIp4.Location = new System.Drawing.Point(125, 238);
             this.inputIp4.Name = "inputIp4";
-            this.inputIp4.Size = new System.Drawing.Size(100, 20);
+            this.inputIp4.Size = new System.Drawing.Size(112, 20);
             this.inputIp4.TabIndex = 12;
             this.inputIp4.Text = "192.168.1.203";
             // 
@@ -239,16 +257,18 @@
             this.inputIp5.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.inputIp5.Location = new System.Drawing.Point(125, 293);
             this.inputIp5.Name = "inputIp5";
-            this.inputIp5.Size = new System.Drawing.Size(100, 20);
+            this.inputIp5.Size = new System.Drawing.Size(112, 20);
             this.inputIp5.TabIndex = 13;
+            this.inputIp5.Text = "192.168.1.204";
             // 
             // inputIp6
             // 
             this.inputIp6.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.inputIp6.Location = new System.Drawing.Point(125, 350);
             this.inputIp6.Name = "inputIp6";
-            this.inputIp6.Size = new System.Drawing.Size(100, 20);
+            this.inputIp6.Size = new System.Drawing.Size(112, 20);
             this.inputIp6.TabIndex = 14;
+            this.inputIp6.Text = "192.168.1.205";
             // 
             // status1
             // 
@@ -310,16 +330,6 @@
             this.status6.TabIndex = 20;
             this.status6.Text = "Idle";
             // 
-            // btnStart
-            // 
-            this.btnStart.Location = new System.Drawing.Point(302, 10);
-            this.btnStart.Name = "btnStart";
-            this.btnStart.Size = new System.Drawing.Size(73, 23);
-            this.btnStart.TabIndex = 1;
-            this.btnStart.Text = "Connect";
-            this.btnStart.UseVisualStyleBackColor = true;
-            this.btnStart.Click += new System.EventHandler(this.btnStart_Click);
-            // 
             // timerSync
             // 
             this.timerSync.Interval = 15;
@@ -329,15 +339,6 @@
             // 
             this.timerRTLog.Interval = 2;
             this.timerRTLog.Tick += new System.EventHandler(this.timerRTLog_Tick);
-            // 
-            // label10
-            // 
-            this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(12, 15);
-            this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(24, 13);
-            this.label10.TabIndex = 2;
-            this.label10.Text = "API";
             // 
             // tbApi
             // 
@@ -356,15 +357,6 @@
             this.tbLogs.Size = new System.Drawing.Size(346, 391);
             this.tbLogs.TabIndex = 4;
             // 
-            // label11
-            // 
-            this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(392, 15);
-            this.label11.Name = "label11";
-            this.label11.Size = new System.Drawing.Size(33, 13);
-            this.label11.TabIndex = 5;
-            this.label11.Text = "Logs:";
-            // 
             // timerStart
             // 
             this.timerStart.Interval = 1000;
@@ -378,6 +370,16 @@
             this.lblNetStatus.Size = new System.Drawing.Size(45, 13);
             this.lblNetStatus.TabIndex = 6;
             this.lblNetStatus.Text = "Inactive";
+            // 
+            // btnStart
+            // 
+            this.btnStart.Location = new System.Drawing.Point(302, 10);
+            this.btnStart.Name = "btnStart";
+            this.btnStart.Size = new System.Drawing.Size(73, 23);
+            this.btnStart.TabIndex = 1;
+            this.btnStart.Text = "Connect";
+            this.btnStart.UseVisualStyleBackColor = true;
+            this.btnStart.Click += new System.EventHandler(this.btnStart_Click);
             // 
             // multiple
             // 
@@ -414,26 +416,26 @@
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.Label label9;
-        private System.Windows.Forms.TextBox inputIp1;
-        private System.Windows.Forms.TextBox inputIp2;
-        private System.Windows.Forms.TextBox inputIp3;
-        private System.Windows.Forms.TextBox inputIp4;
-        private System.Windows.Forms.TextBox inputIp5;
-        private System.Windows.Forms.TextBox inputIp6;
+        private System.Windows.Forms.Label label10;
         private System.Windows.Forms.Label status1;
         private System.Windows.Forms.Label status2;
         private System.Windows.Forms.Label status3;
         private System.Windows.Forms.Label status4;
         private System.Windows.Forms.Label status5;
         private System.Windows.Forms.Label status6;
+        private System.Windows.Forms.Label label11;
+        private System.Windows.Forms.Label lblNetStatus;
+        private System.Windows.Forms.TextBox inputIp1;
+        private System.Windows.Forms.TextBox inputIp2;
+        private System.Windows.Forms.TextBox inputIp3;
+        private System.Windows.Forms.TextBox inputIp4;
+        private System.Windows.Forms.TextBox inputIp5;
+        private System.Windows.Forms.TextBox inputIp6;
+        private System.Windows.Forms.TextBox tbApi;
+        private System.Windows.Forms.TextBox tbLogs;
         private System.Windows.Forms.Button btnStart;
         private System.Windows.Forms.Timer timerSync;
         private System.Windows.Forms.Timer timerRTLog;
-        private System.Windows.Forms.Label label10;
-        private System.Windows.Forms.TextBox tbApi;
-        private System.Windows.Forms.TextBox tbLogs;
-        private System.Windows.Forms.Label label11;
         private System.Windows.Forms.Timer timerStart;
-        private System.Windows.Forms.Label lblNetStatus;
     }
 }
