@@ -40,21 +40,21 @@
             this.label7 = new System.Windows.Forms.Label();
             this.label8 = new System.Windows.Forms.Label();
             this.label9 = new System.Windows.Forms.Label();
-            this.label10 = new System.Windows.Forms.Label();
-            this.label11 = new System.Windows.Forms.Label();
+            this.inputIp3 = new System.Windows.Forms.TextBox();
+            this.inputIp4 = new System.Windows.Forms.TextBox();
+            this.inputIp5 = new System.Windows.Forms.TextBox();
+            this.inputIp6 = new System.Windows.Forms.TextBox();
             this.status1 = new System.Windows.Forms.Label();
             this.status2 = new System.Windows.Forms.Label();
             this.status3 = new System.Windows.Forms.Label();
             this.status4 = new System.Windows.Forms.Label();
             this.status5 = new System.Windows.Forms.Label();
             this.status6 = new System.Windows.Forms.Label();
-            this.lblNetStatus = new System.Windows.Forms.Label();
-            this.inputIp1 = new System.Windows.Forms.TextBox();
             this.inputIp2 = new System.Windows.Forms.TextBox();
-            this.inputIp3 = new System.Windows.Forms.TextBox();
-            this.inputIp4 = new System.Windows.Forms.TextBox();
-            this.inputIp5 = new System.Windows.Forms.TextBox();
-            this.inputIp6 = new System.Windows.Forms.TextBox();
+            this.inputIp1 = new System.Windows.Forms.TextBox();
+            this.label10 = new System.Windows.Forms.Label();
+            this.label11 = new System.Windows.Forms.Label();
+            this.lblNetStatus = new System.Windows.Forms.Label();
             this.tbApi = new System.Windows.Forms.TextBox();
             this.tbLogs = new System.Windows.Forms.TextBox();
             this.btnStart = new System.Windows.Forms.Button();
@@ -198,42 +198,6 @@
             this.label9.TabIndex = 8;
             this.label9.Text = "Turnstile 6";
             // 
-            // label10
-            // 
-            this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(12, 15);
-            this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(24, 13);
-            this.label10.TabIndex = 2;
-            this.label10.Text = "API";
-            // 
-            // label11
-            // 
-            this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(392, 15);
-            this.label11.Name = "label11";
-            this.label11.Size = new System.Drawing.Size(33, 13);
-            this.label11.TabIndex = 5;
-            this.label11.Text = "Logs:";
-            // 
-            // inputIp1
-            // 
-            this.inputIp1.Anchor = System.Windows.Forms.AnchorStyles.Left;
-            this.inputIp1.Location = new System.Drawing.Point(125, 73);
-            this.inputIp1.Name = "inputIp1";
-            this.inputIp1.Size = new System.Drawing.Size(112, 20);
-            this.inputIp1.TabIndex = 9;
-            this.inputIp1.Text = "192.168.1.200";
-            // 
-            // inputIp2
-            // 
-            this.inputIp2.Anchor = System.Windows.Forms.AnchorStyles.Left;
-            this.inputIp2.Location = new System.Drawing.Point(125, 128);
-            this.inputIp2.Name = "inputIp2";
-            this.inputIp2.Size = new System.Drawing.Size(112, 20);
-            this.inputIp2.TabIndex = 10;
-            this.inputIp2.Text = "192.168.1.201";
-            // 
             // inputIp3
             // 
             this.inputIp3.Anchor = System.Windows.Forms.AnchorStyles.Left;
@@ -330,37 +294,41 @@
             this.status6.TabIndex = 20;
             this.status6.Text = "Idle";
             // 
-            // timerSync
+            // inputIp2
             // 
-            this.timerSync.Interval = 15;
-            this.timerSync.Tick += new System.EventHandler(this.timerSync_Tick);
+            this.inputIp2.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.inputIp2.Location = new System.Drawing.Point(125, 128);
+            this.inputIp2.Name = "inputIp2";
+            this.inputIp2.Size = new System.Drawing.Size(112, 20);
+            this.inputIp2.TabIndex = 10;
+            this.inputIp2.Text = "192.168.1.201";
             // 
-            // timerRTLog
+            // inputIp1
             // 
-            this.timerRTLog.Interval = 2;
-            this.timerRTLog.Tick += new System.EventHandler(this.timerRTLog_Tick);
+            this.inputIp1.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.inputIp1.Location = new System.Drawing.Point(125, 73);
+            this.inputIp1.Name = "inputIp1";
+            this.inputIp1.Size = new System.Drawing.Size(112, 20);
+            this.inputIp1.TabIndex = 9;
+            this.inputIp1.Text = "192.168.1.200";
             // 
-            // tbApi
+            // label10
             // 
-            this.tbApi.Location = new System.Drawing.Point(42, 12);
-            this.tbApi.Name = "tbApi";
-            this.tbApi.Size = new System.Drawing.Size(254, 20);
-            this.tbApi.TabIndex = 3;
-            this.tbApi.Text = "https://zims.punjab.gov.pk/apis/ticket/";
+            this.label10.AutoSize = true;
+            this.label10.Location = new System.Drawing.Point(12, 15);
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(24, 13);
+            this.label10.TabIndex = 2;
+            this.label10.Text = "API";
             // 
-            // tbLogs
+            // label11
             // 
-            this.tbLogs.Location = new System.Drawing.Point(395, 39);
-            this.tbLogs.Multiline = true;
-            this.tbLogs.Name = "tbLogs";
-            this.tbLogs.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.tbLogs.Size = new System.Drawing.Size(346, 391);
-            this.tbLogs.TabIndex = 4;
-            // 
-            // timerStart
-            // 
-            this.timerStart.Interval = 1000;
-            this.timerStart.Tick += new System.EventHandler(this.timerStart_Tick);
+            this.label11.AutoSize = true;
+            this.label11.Location = new System.Drawing.Point(392, 15);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(33, 13);
+            this.label11.TabIndex = 5;
+            this.label11.Text = "Logs:";
             // 
             // lblNetStatus
             // 
@@ -371,6 +339,23 @@
             this.lblNetStatus.TabIndex = 6;
             this.lblNetStatus.Text = "Inactive";
             // 
+            // tbApi
+            // 
+            this.tbApi.Location = new System.Drawing.Point(42, 12);
+            this.tbApi.Name = "tbApi";
+            this.tbApi.Size = new System.Drawing.Size(254, 20);
+            this.tbApi.TabIndex = 3;
+            this.tbApi.Text = "http://localhost/zims/apis/ticket/";
+            // 
+            // tbLogs
+            // 
+            this.tbLogs.Location = new System.Drawing.Point(395, 39);
+            this.tbLogs.Multiline = true;
+            this.tbLogs.Name = "tbLogs";
+            this.tbLogs.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.tbLogs.Size = new System.Drawing.Size(346, 391);
+            this.tbLogs.TabIndex = 4;
+            // 
             // btnStart
             // 
             this.btnStart.Location = new System.Drawing.Point(302, 10);
@@ -380,6 +365,21 @@
             this.btnStart.Text = "Connect";
             this.btnStart.UseVisualStyleBackColor = true;
             this.btnStart.Click += new System.EventHandler(this.btnStart_Click);
+            // 
+            // timerSync
+            // 
+            this.timerSync.Interval = 15;
+            this.timerSync.Tick += new System.EventHandler(this.timerSync_Tick);
+            // 
+            // timerRTLog
+            // 
+            this.timerRTLog.Interval = 2;
+            this.timerRTLog.Tick += new System.EventHandler(this.timerRTLog_Tick);
+            // 
+            // timerStart
+            // 
+            this.timerStart.Interval = 1000;
+            this.timerStart.Tick += new System.EventHandler(this.timerStart_Tick);
             // 
             // multiple
             // 

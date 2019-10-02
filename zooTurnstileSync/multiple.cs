@@ -19,8 +19,8 @@ namespace zooTurnstileSync
     public partial class multiple : Form
     {
         private delegate void SafeCallLog(string logMessage);
-        private delegate void SafeCallStatus(int status);
-
+        private delegate void SafeNetStatus(int status);
+        private delegate void SafeLblStatus(int device, string status, Color clr);
         // API string: https://zims.punjab.gov.pk/apis/ticket/
 
         //[DllImport("C:\\WINDOWS\\system32\\plcommpro.dll", EntryPoint = "Connect")]
@@ -50,7 +50,7 @@ namespace zooTurnstileSync
         string port="4370";
 
         int newCheckTime = 15;
-        int rtLogTime = 1;
+        int rtLogTime = 500;
         int reconCount = 0;
         Label[] Lbl;
         IntPtr[] h= { IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero };
@@ -108,14 +108,14 @@ namespace zooTurnstileSync
         }
         private void btnStart_Click(object sender, EventArgs e)
         {
-            Cursor = Cursors.WaitCursor;
             if (btnStart.Text != "Connect")
             {
                 timerStart.Stop();
                 btnStart.Text = "Connect";
                 return;
             }
-            foreach(Label l in Lbl)
+            Cursor = Cursors.WaitCursor;
+            foreach (Label l in Lbl)
             {
                 l.ForeColor = Color.Black;
                 l.Text = "Idle";
@@ -143,7 +143,7 @@ namespace zooTurnstileSync
             timerSync.Interval = newCheckTime * 1000;
             timerSync.Start();
 
-            timerRTLog.Interval = rtLogTime * 1000;
+            timerRTLog.Interval = rtLogTime;// * 1000;
             timerRTLog.Start();
             Cursor = Cursors.Default;
         }
@@ -180,11 +180,18 @@ namespace zooTurnstileSync
             }
             return false;
         }
-
         void changeStatus(int device,string status, Color clr)
         {
-            Lbl[device].ForeColor = clr;
-            Lbl[device].Text = status;
+            if (tbLogs.InvokeRequired)
+            {
+                var d = new SafeLblStatus(changeStatus);
+                tbLogs.Invoke(d, new object[] { device, status, clr });
+            }
+            else
+            {
+                Lbl[device].ForeColor = clr;
+                Lbl[device].Text = status;
+            }
         }
 
         void connectDevice(int device)
@@ -262,12 +269,58 @@ namespace zooTurnstileSync
                 return new String[0];
             }
         }
-        
+        private string[] addTicketToString(string[] ticketString, string tn, string cn)
+        {
+            ticketString[0] = ticketString[0] + "Pin=" + tn + "\tCardNo=" + cn + "\r\n";//"\tPassword=1" + "\r\n";
+            ticketString[1] = ticketString[1] + "Pin=" + tn + "\tAuthorizeDoorId=3\tAuthorizeTimezoneId=1" + "\r\n";
+            return ticketString;
+        }
+
         bool addTicketToController(int devNo, string tn, string cn)
         {
             int ret = 0;
             string data = "Pin=" + tn + "\tCardNo=" + cn + "\tPassword=1";
             string accessData = "Pin=" + tn + "\tAuthorizeDoorId=3\tAuthorizeTimezoneId=1";
+            string options = "";
+
+            if (IntPtr.Zero != h[devNo])
+            {
+                // user here is devtablename
+                ret = SetDeviceData(h[devNo], "user", data, options);
+                if (ret >= 0)
+                {
+                    //logtext("Card No "+cn+" add successfully",Color.Black);
+                    //adding access
+
+                    int secret = SetDeviceData(h[devNo], "userauthorize", accessData, options);
+                    if (secret >= 0)
+                    {
+                        // logtext("Card No " + cn + " access granted", Color.Black);
+                        return true;
+                    }
+                    else
+                    {
+                        //logtext("--> Card no " + cn + " access not granted error="+secret, Color.Red);
+                        return false;
+                    }
+                }
+                else
+                {
+                    //logtext("--> Card no " + cn + " not added", Color.Red);
+                    return false;
+                }
+            }
+            else
+            {
+                //logtext("device not conneted",Color.Red);
+                return false;
+            }
+        }
+        bool addTicketStringToController(int devNo, string[] tickets)
+        {
+            int ret = 0;
+            string data = tickets[0];
+            string accessData = tickets[1];
             string options = "";
 
             if (IntPtr.Zero != h[devNo])
@@ -317,15 +370,28 @@ namespace zooTurnstileSync
                     List<String> addedTickets = new List<String>();
                     if (IntPtr.Zero != h[device])
                     {
+                        string[] ticketString = {"", ""};
                         foreach (ticket t in jsonObj.data)
                         {
+                            ticketString = addTicketToString(ticketString, t.ticket_id, t.qr_code);
+                            addedTickets.Add(t.ticket_id);
+                            /*
                             //logtext(t.ticket_id + " " + t.qr_code + " has been read in recieved data", Color.Green);
                             if (addTicketToController(device, t.ticket_id, t.qr_code))
                             {
                                 addedTickets.Add(t.ticket_id);
                                 logtext("Turnstile[" + device + "]: Ticket added " + t.ticket_id);
                             }
+                            */
                         }
+                        if(addTicketStringToController(device, ticketString))
+                        {
+                            foreach (String ticketNo in addedTickets)
+                            {
+                                logtext("Turnstile[" + (device+1) + "]: Ticket added " + ticketNo);
+                            }
+                        }
+                        
                     }
                 }
             }
@@ -334,7 +400,7 @@ namespace zooTurnstileSync
         void CheckNewEntries()
         {
             //logtext("\"CheckNewEntries\" Called.");
-                String resp = httpExecution("get_sync_record/", "");
+            String resp = httpExecution("get_sync_record/", "");
             if (resp != "")
             {
                 var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
@@ -342,17 +408,28 @@ namespace zooTurnstileSync
                 if (jsonObj.status == "success")
                 {
                     List<String> addedTickets = new List<String>();
+                    string[] ticketString = { "", "" };
+                    foreach (ticket t in jsonObj.data)
+                    {
+                        ticketString = addTicketToString(ticketString, t.ticket_id, t.qr_code);
+                        addedTickets.Add(t.ticket_id);
+                        /*
+                        //logtext(t.ticket_id + " " + t.qr_code + " has been read in recieved data", Color.Green);
+                        if (addTicketToController(device, t.ticket_id, t.qr_code))
+                        {
+                            addedTickets.Add(t.ticket_id);
+                            logtext("Turnstile[" + (device+1) + "]: Ticket added " + t.ticket_id);
+                        }*/
+                    }
                     foreach (int device in devices)
                     {
                         if (IntPtr.Zero != h[device])
                         {
-                            foreach (ticket t in jsonObj.data)
+                            if (addTicketStringToController(device, ticketString))
                             {
-                                //logtext(t.ticket_id + " " + t.qr_code + " has been read in recieved data", Color.Green);
-                                if (addTicketToController(device, t.ticket_id, t.qr_code))
+                                foreach (String ticketNo in addedTickets)
                                 {
-                                    addedTickets.Add(t.ticket_id);
-                                    logtext("Turnstile[" + device + "]: Ticket added " + t.ticket_id);
+                                    logtext("Turnstile[" + (device + 1) + "]: Ticket added " + ticketNo);
                                 }
                             }
                         }
@@ -395,22 +472,22 @@ namespace zooTurnstileSync
                 ret = DeleteDeviceData(h[device], "user", data, options);
                 if (ret >= 0)
                 {
-                    logtext("Turnstile[" + device + "]: Ticket removed " + ePin);
+                    logtext("Turnstile[" + (device + 1) + "]: Ticket removed " + ePin);
                     int secret = DeleteDeviceData(h[device], "userauthorize", data, options);
                     if (secret >= 0)
                     {
-                        logtext("Turnstile[" + device + "]: Access removed " + ePin);
+                        logtext("Turnstile[" + (device + 1) + "]: Access removed " + ePin);
                         //syncDelete(ePin);
                     }
                     else
                     {
 
-                        logtext("Turnstile[" + device + "]: Access not removed " + ePin + ".\t-- > ERROR: " + secret);
+                        logtext("Turnstile[" + (device + 1) + "]: Access not removed " + ePin + ".\t-- > ERROR: " + secret);
                     }
                 }
 
                 else
-                    logtext("Turnstile[" + device + "]: Ticket not removed " + ePin + ".\t-- > ERROR: " + ret);
+                    logtext("Turnstile[" + (device + 1) + "]: Ticket not removed " + ePin + ".\t-- > ERROR: " + ret);
             }
         }
 
@@ -512,7 +589,7 @@ namespace zooTurnstileSync
         {
             if (lblNetStatus.InvokeRequired)
             {
-                var d = new SafeCallStatus(lblNetStatusChangeSafe);
+                var d = new SafeNetStatus(lblNetStatusChangeSafe);
                 lblNetStatus.Invoke(d, new object[] { status });
             }
             else
@@ -539,9 +616,11 @@ namespace zooTurnstileSync
         private void timerRTLog_Tick(object sender, EventArgs e)
         {
             //logtext("\"timerRTLog_Tick\" Called.");
+            timerRTLog.Stop();
             int ret = 0, buffersize = 256;
-            string str = "";
-            string[] tmp = null;
+            string str1 = "";
+            string[] tmp1 = null;
+            string[] tmp2 = null;
             byte[] buffer = new byte[256];
             foreach (int device in devices)
             {
@@ -550,33 +629,45 @@ namespace zooTurnstileSync
                     ret = GetRTLog(h[device], ref buffer[0], buffersize);
                     if (ret >= 0)
                     {
-                        str = Encoding.Default.GetString(buffer);
-                        tmp = str.Split(',');
-
-                        string eTime = tmp[0];
-                        string ePin = tmp[1];
-                        string eCard = tmp[2];
-                        string eAuthorized = tmp[4];
-
-                        // eAuthorized 200 is DOOR OPENED
-                        if (eAuthorized == "200")
+                        
+                        str1 = Encoding.Default.GetString(buffer);
+                        str1 = str1.Replace("\0", "");
+                        str1 = str1.Replace("\r\n", ";");
+                        tmp1 = str1.Split(';');
+                        foreach (string str in tmp1)
                         {
-                            logtext("Turnstile[" + (device + 1) + "]: Ticket consumed " + tp[device].ePin);
-                            foreach (int _device in devices)
+                            if (str != "")
                             {
-                                removeTicketFromController(_device, tp[device].eTime, tp[device].ePin, tp[device].eCard);
+                                //str1 = Encoding.Default.GetString(buffer);
+                                //str = Encoding.Default.GetString(buffer);
+                                tmp2 = str.Split(',');
+
+                                string eTime = tmp2[0];
+                                string ePin = tmp2[1];
+                                string eCard = tmp2[2];
+                                string eAuthorized = tmp2[4];
+
+                                // eAuthorized 200 is DOOR OPENED
+                                if (eAuthorized == "200" || eAuthorized == "102")
+                                {
+                                    logtext("Turnstile[" + (device + 1) + "]: Ticket consumed " + tp[device].ePin);
+                                    foreach (int _device in devices)
+                                    {
+                                        removeTicketFromController(_device, tp[device].eTime, tp[device].ePin, tp[device].eCard);
+                                    }
+                                    // remove entry api call here
+                                    syncDelete(tp[device].ePin);
+                                }
+                                // eAuthorized 0 is Valid Card
+                                else if (eAuthorized == "0" || eAuthorized == "1")
+                                {
+                                    tp[device].eTime = eTime;
+                                    tp[device].ePin = ePin;
+                                    tp[device].eCard = eCard;
+                                    logtext("Turnstile[" + (device + 1) + "]: Ticket verified " + tp[device].ePin);
+                                }
                             }
-                            // remove entry api call here
-                            syncDelete(tp[device].ePin);
                         }
-                        // eAuthorized 0 is Valid Card
-                        else if (eAuthorized == "0")
-                        {
-                            tp[device].eTime = eTime;
-                            tp[device].ePin = ePin;
-                            tp[device].eCard = eCard;
-                            logtext("Turnstile[" + (device + 1) + "]: Ticket verified " + tp[device].ePin);
-                        } 
                     }
                     else
                     {
@@ -592,6 +683,7 @@ namespace zooTurnstileSync
                     logtext("Connect failed! Device[" + device + "]");
                 }*/
             }
+            timerRTLog.Start();
         }
 
         private void timerSync_Tick(object sender, EventArgs e)
