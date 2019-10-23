@@ -61,6 +61,7 @@
             this.timerSync = new System.Windows.Forms.Timer(this.components);
             this.timerRTLog = new System.Windows.Forms.Timer(this.components);
             this.timerStart = new System.Windows.Forms.Timer(this.components);
+            this.backgrounsdWorker1 = new System.ComponentModel.BackgroundWorker();
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -381,6 +382,12 @@
             this.timerStart.Interval = 1000;
             this.timerStart.Tick += new System.EventHandler(this.timerStart_Tick);
             // 
+            // backgrounsdWorker1
+            // 
+            this.backgrounsdWorker1.WorkerReportsProgress = true;
+            this.backgrounsdWorker1.DoWork += new System.ComponentModel.DoWorkEventHandler(this.backgroundWorker1_DoWork);
+            this.backgrounsdWorker1.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.backgroundWorker1_RunWorkerCompleted);
+            // 
             // multiple
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -437,5 +444,6 @@
         private System.Windows.Forms.Timer timerSync;
         private System.Windows.Forms.Timer timerRTLog;
         private System.Windows.Forms.Timer timerStart;
+        private System.ComponentModel.BackgroundWorker backgrounsdWorker1;
     }
 }

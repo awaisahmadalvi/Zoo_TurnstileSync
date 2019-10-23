@@ -22,6 +22,7 @@ namespace zooTurnstileSync
         private delegate void SafeNetStatus(int status);
         private delegate void SafeLblStatus(int device, string status, Color clr);
         // API string: https://zims.punjab.gov.pk/apis/ticket/
+        // API string: http://localhost/zims/apis/ticket/
 
         //[DllImport("C:\\WINDOWS\\system32\\plcommpro.dll", EntryPoint = "Connect")]
         [DllImport("plcommpro.dll", EntryPoint = "Connect")]
@@ -124,28 +125,9 @@ namespace zooTurnstileSync
             timerSync.Stop();
             timerRTLog.Stop();
 
-            foreach(int device in devices)
-            {
-                Disconnect(h[device]);
-                h[device] = IntPtr.Zero;
-                logtext("Turnstile[" + (device+1) + "]: Disconnected");
-            }
-            
-            devices = getConnectableDev();
+            btnStart.Enabled = false;
+            backgrounsdWorker1.RunWorkerAsync();
 
-            //h = Enumerable.Repeat(IntPtr.Zero, devices.Length).ToArray();
-            foreach (int device in devices)
-            {
-                connectDevice(device);
-            }
-            
-            // timers
-            timerSync.Interval = newCheckTime * 1000;
-            timerSync.Start();
-
-            timerRTLog.Interval = rtLogTime;// * 1000;
-            timerRTLog.Start();
-            Cursor = Cursors.Default;
         }
 
         private int[] getConnectableDev()
@@ -227,11 +209,13 @@ namespace zooTurnstileSync
         void deleteAllExisting(int device)
         {
             //logtext("\"deleteAllExisting\" Called.");
+            //Cursor = Cursors.WaitCursor;
             String[] allRecord = getAllExistingData(h[device]);
             foreach (string pin in allRecord)
             {
                 removeTicketFromController(device, "", pin, "");
             }
+            //Cursor = Cursors.Default;
         }
 
         private String[] getAllExistingData(IntPtr h)
@@ -386,10 +370,12 @@ namespace zooTurnstileSync
                         }
                         if(addTicketStringToController(device, ticketString))
                         {
+                            String addedTicketsLog = "";
                             foreach (String ticketNo in addedTickets)
                             {
-                                logtext("Turnstile[" + (device+1) + "]: Ticket added " + ticketNo);
+                                addedTicketsLog = addedTicketsLog + "Turnstile[" + (device+1) + "]: Ticket added " + ticketNo + System.Environment.NewLine;
                             }
+                            logtext(addedTicketsLog);
                         }
                         
                     }
@@ -617,11 +603,11 @@ namespace zooTurnstileSync
         {
             //logtext("\"timerRTLog_Tick\" Called.");
             timerRTLog.Stop();
-            int ret = 0, buffersize = 256;
+            int ret = 0, buffersize = 10256;
             string str1 = "";
             string[] tmp1 = null;
             string[] tmp2 = null;
-            byte[] buffer = new byte[256];
+            byte[] buffer = new byte[10256];
             foreach (int device in devices)
             {
                 if (IntPtr.Zero != h[device])
@@ -641,6 +627,8 @@ namespace zooTurnstileSync
                                 //str1 = Encoding.Default.GetString(buffer);
                                 //str = Encoding.Default.GetString(buffer);
                                 tmp2 = str.Split(',');
+
+                                //logtext("Device "+ device +" LOG: " + str);
 
                                 string eTime = tmp2[0];
                                 string ePin = tmp2[1];
@@ -740,10 +728,41 @@ namespace zooTurnstileSync
                     break;
                 case "in 1...":
                     btnStart.Text = "Connect";
-                    btnStart.PerformClick();
                     timerStart.Stop();
+                    btnStart.PerformClick();
                     break;
             }
+        }
+
+        private void backgroundWorker1_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
+        {   
+            foreach (int device in devices)
+            {
+                Disconnect(h[device]);
+                h[device] = IntPtr.Zero;
+                logtext("Turnstile[" + (device + 1) + "]: Disconnected");
+            }
+
+            devices = getConnectableDev();
+
+            //h = Enumerable.Repeat(IntPtr.Zero, devices.Length).ToArray();
+            foreach (int device in devices)
+            {
+                connectDevice(device);
+            }
+        }
+
+        private void backgroundWorker1_
+            (object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
+        {
+            Cursor = Cursors.Default;
+            btnStart.Enabled = true;
+            // timers
+            timerSync.Interval = newCheckTime * 1000;
+            timerSync.Start();
+
+            timerRTLog.Interval = rtLogTime;// * 1000;
+            timerRTLog.Start();
         }
     }
 }
