@@ -62,6 +62,14 @@ namespace zooTurnstileSync
         public multiple()
         {
             InitializeComponent();
+            if (System.Deployment.Application.ApplicationDeployment.IsNetworkDeployed)
+            {
+                this.Text = "Zoo Turnstile v" + System.Deployment.Application.ApplicationDeployment.CurrentDeployment.CurrentVersion.ToString();
+            }
+            else
+            {
+                this.Text = "Zoo Turnstile";
+            }
             logtext("Program Started @ " + DateTime.Now.ToString("MM/dd/yyyy hh:mm tt") );
             Lbl = new Label [6] { status1, status2, status3, status4, status5, status6 };
             timerStart.Start();
@@ -92,6 +100,7 @@ namespace zooTurnstileSync
                 str.Flush();
             }
         }
+
         private void WriteTextSafe(string logMessage)
         {
             if (tbLogs.InvokeRequired)
@@ -107,14 +116,24 @@ namespace zooTurnstileSync
                 tbLogs.SelectedText = logMessage;
             }
         }
+
         private void btnStart_Click(object sender, EventArgs e)
         {
-            if (btnStart.Text != "Connect")
+            if (btnStart.Text == "Disconnect")
+            {
+                disconnectAll();
+                timerRTLog.Stop();
+                timerSync.Stop();
+                btnStart.Text = "Connect";
+                return;
+            }
+            else if (btnStart.Text != "Connect")
             {
                 timerStart.Stop();
                 btnStart.Text = "Connect";
                 return;
             }
+
             Cursor = Cursors.WaitCursor;
             foreach (Label l in Lbl)
             {
@@ -128,6 +147,24 @@ namespace zooTurnstileSync
             btnStart.Enabled = false;
             backgrounsdWorker1.RunWorkerAsync();
 
+        }
+        private void disconnectAll()
+        {
+            string log = "";
+            foreach (int device in devices)
+            {
+                Disconnect(h[device]);
+                h[device] = IntPtr.Zero;
+                if (Lbl[device].Text == "Connected")
+                {
+                    changeStatus(device, "Disconnected", Color.Red);
+                }
+                log = log + "Turnstile[" + (device + 1) + "]: Disconnected" + System.Environment.NewLine;
+            }
+            if (log != "")
+            {
+                logtext(log);
+            }
         }
 
         private int[] getConnectableDev()
@@ -162,6 +199,7 @@ namespace zooTurnstileSync
             }
             return false;
         }
+
         void changeStatus(int device,string status, Color clr)
         {
             if (tbLogs.InvokeRequired)
@@ -184,7 +222,6 @@ namespace zooTurnstileSync
             connectionStr+=",port=" + port + ",timeout=2000,passwd=";
 
             int ret = 0;        // Error ID number
-            //Cursor = Cursors.WaitCursor;
 
             //if (IntPtr.Zero == h[device])
             //{
@@ -202,20 +239,18 @@ namespace zooTurnstileSync
                 ret = PullLastError();
                 logtext("Turnstile[" + (device+1) + "]: Connection Failed! The error id is: " + ret);
             }
-            //Cursor = Cursors.Default;
         }
-
-        //4.7 call GetDeviceData function
+        
         void deleteAllExisting(int device)
         {
             //logtext("\"deleteAllExisting\" Called.");
-            //Cursor = Cursors.WaitCursor;
             String[] allRecord = getAllExistingData(h[device]);
+            string log = "";
             foreach (string pin in allRecord)
             {
-                removeTicketFromController(device, "", pin, "");
+                log = log + removeTicketFromController(device, "", pin, "");
             }
-            //Cursor = Cursors.Default;
+            logtext(log);
         }
 
         private String[] getAllExistingData(IntPtr h)
@@ -249,10 +284,11 @@ namespace zooTurnstileSync
             }
             else
             {
-                MessageBox.Show("Get data failed.The error is " + ret);
+                MessageBox.Show("Get data failed. The error is " + ret);
                 return new String[0];
             }
         }
+
         private string[] addTicketToString(string[] ticketString, string tn, string cn)
         {
             ticketString[0] = ticketString[0] + "Pin=" + tn + "\tCardNo=" + cn + "\r\n";//"\tPassword=1" + "\r\n";
@@ -300,6 +336,7 @@ namespace zooTurnstileSync
                 return false;
             }
         }
+
         bool addTicketStringToController(int devNo, string[] tickets)
         {
             int ret = 0;
@@ -413,9 +450,14 @@ namespace zooTurnstileSync
                         {
                             if (addTicketStringToController(device, ticketString))
                             {
+                                String log = "";
                                 foreach (String ticketNo in addedTickets)
                                 {
-                                    logtext("Turnstile[" + (device + 1) + "]: Ticket added " + ticketNo);
+                                    log = log + "Turnstile[" + (device + 1) + "]: Ticket added " + ticketNo + System.Environment.NewLine;
+                                }
+                                if (log != "")
+                                {
+                                    logtext(log);
                                 }
                             }
                         }
@@ -447,34 +489,35 @@ namespace zooTurnstileSync
             }
         }
 
-        void removeTicketFromController(int device, string eTime, string ePin, string eCard)
+        string removeTicketFromController(int device, string eTime, string ePin, string eCard)
         {
             int ret = 0;
             string data = "Pin=" + ePin;
             string options = "";
+            string log = "";
 
             if (IntPtr.Zero != h[device])
             {
                 ret = DeleteDeviceData(h[device], "user", data, options);
                 if (ret >= 0)
                 {
-                    logtext("Turnstile[" + (device + 1) + "]: Ticket removed " + ePin);
+                    log = "Turnstile[" + (device + 1) + "]: Ticket removed " + ePin + System.Environment.NewLine;
                     int secret = DeleteDeviceData(h[device], "userauthorize", data, options);
                     if (secret >= 0)
                     {
-                        logtext("Turnstile[" + (device + 1) + "]: Access removed " + ePin);
+                        log = log + "Turnstile[" + (device + 1) + "]: Access removed " + ePin + System.Environment.NewLine;
                         //syncDelete(ePin);
                     }
                     else
                     {
-
-                        logtext("Turnstile[" + (device + 1) + "]: Access not removed " + ePin + ".\t-- > ERROR: " + secret);
+                        log = log + "Turnstile[" + (device + 1) + "]: Access not removed " + ePin + ".\t-- > ERROR: " + secret + System.Environment.NewLine;
                     }
                 }
 
                 else
-                    logtext("Turnstile[" + (device + 1) + "]: Ticket not removed " + ePin + ".\t-- > ERROR: " + ret);
+                    log = log + "Turnstile[" + (device + 1) + "]: Ticket not removed " + ePin + ".\t-- > ERROR: " + ret + System.Environment.NewLine;
             }
+            return log;
         }
 
         private void syncDelete(string pin)
@@ -507,7 +550,7 @@ namespace zooTurnstileSync
             }
         }
 
-        String httpExecution(string url, string body)
+        private String httpExecution(string url, string body)
         {
             
             url = getApiUrl() + url;
@@ -571,6 +614,7 @@ namespace zooTurnstileSync
             //MessageBox.Show(response.ReasonPhrase.ToString());
             return response.Content.ReadAsStringAsync().Result;
         }
+
         private void lblNetStatusChangeSafe(int status)
         {
             if (lblNetStatus.InvokeRequired)
@@ -615,7 +659,6 @@ namespace zooTurnstileSync
                     ret = GetRTLog(h[device], ref buffer[0], buffersize);
                     if (ret >= 0)
                     {
-                        
                         str1 = Encoding.Default.GetString(buffer);
                         str1 = str1.Replace("\0", "");
                         str1 = str1.Replace("\r\n", ";");
@@ -638,12 +681,13 @@ namespace zooTurnstileSync
                                 // eAuthorized 200 is DOOR OPENED
                                 if (eAuthorized == "200" || eAuthorized == "102")
                                 {
-                                    logtext("Turnstile[" + (device + 1) + "]: Ticket consumed " + tp[device].ePin);
+                                    string log = "Turnstile[" + (device + 1) + "]: Ticket consumed " + tp[device].ePin + System.Environment.NewLine;
                                     foreach (int _device in devices)
                                     {
-                                        removeTicketFromController(_device, tp[device].eTime, tp[device].ePin, tp[device].eCard);
+                                        log = log + removeTicketFromController(_device, tp[device].eTime, tp[device].ePin, tp[device].eCard);
                                     }
                                     // remove entry api call here
+                                    logtext(log);
                                     syncDelete(tp[device].ePin);
                                 }
                                 // eAuthorized 0 is Valid Card
@@ -735,16 +779,9 @@ namespace zooTurnstileSync
         }
 
         private void backgroundWorker1_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
-        {   
-            foreach (int device in devices)
-            {
-                Disconnect(h[device]);
-                h[device] = IntPtr.Zero;
-                logtext("Turnstile[" + (device + 1) + "]: Disconnected");
-            }
-
+        {
+            disconnectAll();
             devices = getConnectableDev();
-
             //h = Enumerable.Repeat(IntPtr.Zero, devices.Length).ToArray();
             foreach (int device in devices)
             {
@@ -752,10 +789,10 @@ namespace zooTurnstileSync
             }
         }
 
-        private void backgroundWorker1_
-            (object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
+        private void backgroundWorker1_RunWorkerCompleted(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
         {
             Cursor = Cursors.Default;
+            btnStart.Text = "Disconnect";
             btnStart.Enabled = true;
             // timers
             timerSync.Interval = newCheckTime * 1000;
