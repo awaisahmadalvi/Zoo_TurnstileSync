@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace zooTurnstileSync
+namespace ZooTurnstileSync
 {
     static class Program
     {
@@ -16,7 +16,7 @@ namespace zooTurnstileSync
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new multiple());
+            Application.Run(new MainUI());
         }
     }
 }

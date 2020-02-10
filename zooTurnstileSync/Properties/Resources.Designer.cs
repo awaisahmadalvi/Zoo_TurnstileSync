@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace zooTurnstileSync.Properties {
+namespace ZooTurnstileSync.Properties {
     using System;
     
     
