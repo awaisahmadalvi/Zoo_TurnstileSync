@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Drawing;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -32,24 +32,31 @@ namespace zooTurnstileSync
             String resp = HttpExecution("get_active_record/", "");
             if (resp != "")
             {
-                var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
-
-                if (jsonObj.status == "success")
+                try
                 {
-                    foreach (ticket t in jsonObj.data)
+                    var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
+
+                    if (jsonObj.status == "success")
                     {
-                        ticketString = AddTicketToString(ticketString, t.ticket_id, t.qr_code);
-                        addedTickets.Add(t.ticket_id);
-                        /*
-                        //log.LogText(t.ticket_id + " " + t.qr_code + " has been read in recieved data", Color.Green);
-                        if (addTicketToController(device, t.ticket_id, t.qr_code))
+                        foreach (ticket t in jsonObj.data)
                         {
+                            ticketString = AddTicketToString(ticketString, t.ticket_id, t.qr_code);
                             addedTickets.Add(t.ticket_id);
-                            log.LogText("Turnstile[" + device + "]: Ticket added " + t.ticket_id);
+                            /*
+                            //log.LogText(t.ticket_id + " " + t.qr_code + " has been read in recieved data", Color.Green);
+                            if (addTicketToController(device, t.ticket_id, t.qr_code))
+                            {
+                                addedTickets.Add(t.ticket_id);
+                                log.LogText("Turnstile[" + device + "]: Ticket added " + t.ticket_id);
+                            }
+                            */
                         }
-                        */
+                        return true;
                     }
-                    return true;
+                }
+                catch (Exception ex)
+                {
+                    log.LogText("API Exception: Inside CheckActiveEntries, " + ex.Message.ToString() + System.Environment.NewLine);
                 }
             }
             return false;
@@ -61,49 +68,57 @@ namespace zooTurnstileSync
             String resp = HttpExecution("get_sync_record/", "");
             if (resp != "")
             {
-                var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
-
-                if (jsonObj.status == "success")
+                try
                 {
-                    foreach (ticket t in jsonObj.data)
+                    var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
+
+                    if (jsonObj.status == "success")
                     {
-                        ticketString = AddTicketToString(ticketString, t.ticket_id, t.qr_code);
-                        addedTickets.Add(t.ticket_id);
-                        /*
-                        //log.LogText(t.ticket_id + " " + t.qr_code + " has been read in recieved data", Color.Green);
-                        if (addTicketToController(device, t.ticket_id, t.qr_code))
+                        foreach (ticket t in jsonObj.data)
                         {
+                            ticketString = AddTicketToString(ticketString, t.ticket_id, t.qr_code);
                             addedTickets.Add(t.ticket_id);
-                            log.LogText("Turnstile[" + (device+1) + "]: Ticket added " + t.ticket_id);
-                        }*/
-                    }
-                    if(addedTickets.Count >0) {
-                        return true;
-                    }
-                    return false;
-                    /*
-                    foreach (int device in devices)
-                    {
-                        if (IntPtr.Zero != h[device])
-                        {
-                            if (AddTicketStringToController(device, ticketString))
+                            /*
+                            //log.LogText(t.ticket_id + " " + t.qr_code + " has been read in recieved data", Color.Green);
+                            if (addTicketToController(device, t.ticket_id, t.qr_code))
                             {
-                                String logMsg = "";
-                                foreach (String ticketNo in addedTickets)
+                                addedTickets.Add(t.ticket_id);
+                                log.LogText("Turnstile[" + (device+1) + "]: Ticket added " + t.ticket_id);
+                            }*/
+                        }
+                        if (addedTickets.Count > 0)
+                        {
+                            return true;
+                        }
+                        return false;
+                        /*
+                        foreach (int device in devices)
+                        {
+                            if (IntPtr.Zero != h[device])
+                            {
+                                if (AddTicketStringToController(device, ticketString))
                                 {
-                                    logMsg = logMsg + "Turnstile[" + (device + 1) + "]: Ticket added " + ticketNo + System.Environment.NewLine;
-                                }
-                                if (logMsg != "")
-                                {
-                                    log.LogText(logMsg);
+                                    String logMsg = "";
+                                    foreach (String ticketNo in addedTickets)
+                                    {
+                                        logMsg = logMsg + "Turnstile[" + (device + 1) + "]: Ticket added " + ticketNo + System.Environment.NewLine;
+                                    }
+                                    if (logMsg != "")
+                                    {
+                                        log.LogText(logMsg);
+                                    }
                                 }
                             }
                         }
+                        if (addedTickets.Any())
+                        {
+                            SyncBackAddedTickets(addedTickets);
+                        }*/
                     }
-                    if (addedTickets.Any())
-                    {
-                        SyncBackAddedTickets(addedTickets);
-                    }*/
+                }
+                catch (JsonSerializationException ex)
+                {
+                    log.LogText("API Exception: Inside CheckNewEntries, " + ex.Message.ToString() + System.Environment.NewLine);
                 }
             }
             return false;
@@ -114,16 +129,30 @@ namespace zooTurnstileSync
             //log.LogText("\"SyncBackAddedTickets\" Called.");
             syncback sb = new syncback();
             sb.ticket_id = addedTickets;
-            var json = JsonConvert.SerializeObject(sb);
             String resp = null;
-            resp = HttpExecution("update_sync_record/", json);
+            try
+            {
+                var json = JsonConvert.SerializeObject(sb);
+                resp = HttpExecution("update_sync_record/", json);
+            }
+            catch (Exception ex)
+            {
+                log.LogText("API Exception: Inside SyncBackAddedTickets, " + ex.Message.ToString() + System.Environment.NewLine);
+            }
             if (resp != "")
             {
-                var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
-
-                if (jsonObj.status == "success")
+                try
                 {
-                    log.LogText("API: Added tickets synced back");
+                    var jsonObj = JsonConvert.DeserializeObject<newTickets>(resp);
+
+                    if (jsonObj.status == "success")
+                    {
+                        log.LogText("API: Added tickets synced back");
+                    }
+                }
+                catch(Exception ex)
+                {
+                    log.LogText("API Exception: Inside SyncBackAddedTickets, " + ex.Message.ToString() + System.Environment.NewLine);
                 }
             }
         }
@@ -132,20 +161,35 @@ namespace zooTurnstileSync
         {
             syncbackdelete sb = new syncbackdelete();
             sb.ticket_id = pin;
-            var json = JsonConvert.SerializeObject(sb);
             String resp = null;
-            resp = HttpExecution("update_qr_status", json);
+            try
+            {
+                var json = JsonConvert.SerializeObject(sb);
+                resp = HttpExecution("update_qr_status", json);
+            }
+            catch (Exception ex)
+            {
+                log.LogText("API Exception: Inside SyncDelete, " + ex.Message.ToString() + System.Environment.NewLine);
+            }
             if (resp != "")
             {
-                var jsonObj = JsonConvert.DeserializeObject<delTicketServerMsg>(resp);
+                try
+                {
 
-                if (jsonObj.status == "success")
-                {
-                    log.LogText("API: Ticket removed from server: " + pin);
+                    var jsonObj = JsonConvert.DeserializeObject<delTicketServerMsg>(resp);
+
+                    if (jsonObj.status == "success")
+                    {
+                        log.LogText("API: Ticket removed from server: " + pin);
+                    }
+                    else
+                    {
+                        log.LogText("API ERROR: Ticket not removed from server, no status success: " + pin);
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    log.LogText("API ERROR: Ticket not removed from server, no status success: " + pin);
+                    log.LogText("API Exception: " + ex.Message.ToString() + System.Environment.NewLine);
                 }
             }
             else
@@ -154,9 +198,9 @@ namespace zooTurnstileSync
             }
         }
 
-        private String HttpExecution(string url, string body)
+        private String HttpExecution(string uri, string body)
         {
-            url = GetApiUrl() + url;
+            string url = GetApiUrl() + uri;
             //log.LogText(url);
             HttpClient client = new HttpClient();
             client.BaseAddress = new Uri(url);
@@ -200,19 +244,19 @@ namespace zooTurnstileSync
             if (response == null)
             {
                 log.LogText("API ERROR: Null response from API.");
-                ui.LblNetStatusChangeSafe(0);
+                ui.LblNetStatusChangeSafe("Error - " + uri, Color.Red);
                 return "";
 
             }
             else if (response.StatusCode == HttpStatusCode.OK)
             {
                 //log.LogText("API OK");
-                ui.LblNetStatusChangeSafe(1);
+                ui.LblNetStatusChangeSafe("Online - "+ uri, Color.Green);
             }
             else         //if (response.StatusCode != HttpStatusCode.OK)
             {
                 log.LogText("API ERROR: " + response.ReasonPhrase.ToString());
-                ui.LblNetStatusChangeSafe(0);
+                ui.LblNetStatusChangeSafe("Error - " + uri, Color.Red);
                 return "";
             }
             //MessageBox.Show(response.ReasonPhrase.ToString());

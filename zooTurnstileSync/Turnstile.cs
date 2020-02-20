@@ -5,8 +5,8 @@ using System.Drawing;
 using zooTurnstileSync;
 using System.Collections.Generic;
 using System.Linq;
-using System.Timers;
 using System.Runtime.ExceptionServices;
+using System.Threading;
 
 namespace ZooTurnstileSync
 {
@@ -39,7 +39,6 @@ namespace ZooTurnstileSync
         private int devNo;
         private string devIP;
         private string port = "4370";
-        int rtLogTime = 1000;
         //int syncCount = 0;
         //int reconMax = 30;   //3 Minutes = syncTime * reconMax
         // array of punched tickets to check if these are consumed
@@ -51,6 +50,7 @@ namespace ZooTurnstileSync
         
         private static readonly object busy = new object();
         private Timer RTLTimer;
+        int rtLogTime = 3000;
 
         private string[] newTicketString = { "", "" };
         List<String> addedTickets = new List<String>();
@@ -71,42 +71,49 @@ namespace ZooTurnstileSync
         private void SetRTLTimer()
         {
             // Create a timer with a two second interval.
-            RTLTimer = new Timer(rtLogTime);
-            // Hook up the Elapsed event for the timer. 
+            RTLTimer = new Timer(OnRTLTimerEvent, null, rtLogTime, rtLogTime);
+            /* Hook up the Elapsed event for the timer. 
             RTLTimer.Elapsed += OnRTLTimerEvent;
             RTLTimer.AutoReset = true;
-            RTLTimer.Enabled = true;
+            RTLTimer.Enabled = true;*/
         }
 
-        private void OnRTLTimerEvent(object sender, ElapsedEventArgs e)
+        private void OnRTLTimerEvent(object sender)//, ElapsedEventArgs e)
         {
             try
             {
+                ui.ChangeStatus(devNo, "RTLOG...", Color.Blue);
                 CheckRTLog();
             }
             catch (Exception ex)
             {
-                log.LogText("Turnstile[" + (devNo + 1) + "]: Exception: " + ex.Message.ToString() + System.Environment.NewLine);
+                log.LogText("Turnstile[" + (devNo + 1) + "]: Exception inside OnRTLTimerEvent: " + ex.Message.ToString() + System.Environment.NewLine);
                 Disconect();
             }
         }
 
-        public void SyncDevice(Object stateInfo)
+        public void SyncDevice()
         {
-            if (IntPtr.Zero == h)
+            if (IntPtr.Zero == h && ui.Lbl[devNo].Text != "Connecting...")
             {
-                Connect();
+                ConnectTurnstile();
             }
-            if (AddTicket(newTicketString))
+            else
             {
-                web.SyncBackAddedTickets(addedTickets);
-                log.LogText("Turnstile[" + (devNo + 1) + "]: \n" + newTicketString[0]);
-                newTicketString[0] = "";
-                newTicketString[1] = "";
+
+                ui.ChangeStatus(devNo, "Syncing...", Color.YellowGreen);
+                if (AddTicket(newTicketString))
+                {
+                    web.SyncBackAddedTickets(addedTickets);
+                    log.LogText("Turnstile[" + (devNo + 1) + "]: New Tickets" + System.Environment.NewLine + newTicketString[0]);
+                    newTicketString[0] = "";
+                    newTicketString[1] = "";
+                }
+                //ui.ChangeStatus(devNo, "Connected", Color.Green);
             }
         }
 
-        public void Connect()
+        public void ConnectTurnstile()
         {
             string connectionStr = "";
             connectionStr = "protocol=TCP,ipaddress=";
@@ -114,50 +121,63 @@ namespace ZooTurnstileSync
             connectionStr += ",port=" + port + ",timeout=2000,passwd=";
 
             int ret = 0;        // Error ID number
-
-            if (FlushDevice())
+            
+            lock (busy)
             {
+                try
+                {
+                    ui.ChangeStatus(devNo, "Connecting...", Color.Blue);
+                    h = Connect(connectionStr);
+                    if (h != IntPtr.Zero)
+                    {
+                        if(FlushDevice())
+                            h = Connect(connectionStr);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log.LogText("Turnstile[" + (devNo + 1) + "]: Exception inside ConnectTurnstile: " + ex.Message.ToString() + System.Environment.NewLine);
+                    Disconect();
+                }
+            }
+            if (h != IntPtr.Zero)
+            {
+                log.LogText("Turnstile[" + (devNo + 1) + "]: Connection Successful!");
+                ui.ChangeStatus(devNo, "Connected", Color.Green);
+                string[] ticketString = { "", "" };
+                List<String> addedTickets = new List<String>();
+                if (web.CheckActiveEntries(ticketString, addedTickets))
+                {
+                    if (AddTicket(ticketString))
+                    {
+                        String addedTicketsLog = "";
+                        foreach (String ticketNo in addedTickets)
+                        {
+                            addedTicketsLog = addedTicketsLog + "Turnstile[" + (devNo + 1) + "]: Ticket added " + ticketNo + System.Environment.NewLine;
+                        }
+                        if("" != addedTicketsLog)
+                            log.LogText(addedTicketsLog);
+                    }
+                }
+                SetRTLTimer();
+            }
+            else
+            {
+                //SetRTLTimer();
                 lock (busy)
                 {
                     try
                     {
-                        h = Connect(connectionStr);
+                        ret = PullLastError();
                     }
-                    catch (Exception ex)
+                    catch(Exception ex)
                     {
-                        log.LogText("Turnstile[" + (devNo + 1) + "]: Exception: " + ex.Message.ToString() + System.Environment.NewLine);
+                        log.LogText("Turnstile[" + (devNo + 1) + "]: Exception inside ConnectTurnstile: " + ex.Message.ToString() + System.Environment.NewLine);
                         Disconect();
                     }
                 }
-                if (h != IntPtr.Zero)
-                {
-                    log.LogText("Turnstile[" + (devNo + 1) + "]: Connection Successful!");
-                    ui.ChangeStatus(devNo, "Connected", Color.Green);
-                    string[] ticketString = { "", "" };
-                    List<String> addedTickets = new List<String>();
-                    if (web.CheckActiveEntries(ticketString, addedTickets))
-                    {
-                        if (AddTicket(ticketString))
-                        {
-                            String addedTicketsLog = "";
-                            foreach (String ticketNo in addedTickets)
-                            {
-                                addedTicketsLog = addedTicketsLog + "Turnstile[" + (devNo + 1) + "]: Ticket added " + ticketNo + System.Environment.NewLine;
-                            }
-                            log.LogText(addedTicketsLog);
-                        }
-                    }
-                    SetRTLTimer();
-                }
-                else
-                {
-                    SetRTLTimer();
-                    lock (busy)
-                    {
-                        ret = PullLastError();
-                    }
-                    log.LogText("Turnstile[" + (devNo + 1) + "]: Connection Failed! The error id is: " + ret);
-                }
+                log.LogText("Turnstile[" + (devNo + 1) + "]: Connection Failed! The error id is: " + ret);
+                Disconect();
             }
         }
 
@@ -167,9 +187,9 @@ namespace ZooTurnstileSync
             zkemkeeper.CZKEM axCZKEM1 = new zkemkeeper.CZKEM();
             try
             {
-                ui.ChangeStatus(devNo, "Connecting...", Color.Blue);
                 lock (busy)
                 {
+                    ui.ChangeStatus(devNo, "Flushing...", Color.Blue);
                     bool bIsConnected = axCZKEM1.Connect_Net(devIP, 4370);   // 4370 is port no of attendance machine
                     if (bIsConnected == true)
                     {
@@ -185,14 +205,21 @@ namespace ZooTurnstileSync
                     {
                         logMsg = logMsg + "Turnstile[" + (devNo + 1) + "]: Device Not Cleared/Connected\n";
                         log.LogText(logMsg);
-                        ui.ChangeStatus(devNo, "Not Connected", Color.Black);
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                axCZKEM1.Disconnect();
+                try
+                {
+                    axCZKEM1.Disconnect();
+                }
+                catch (Exception exx)
+                {
+                    log.LogText("Turnstile[" + (devNo + 1) + "]: Exception inside FlushDevice: " + exx.Message.ToString() + System.Environment.NewLine);
+                    Disconect();
+                }
                 logMsg = logMsg + "Turnstile[" + (devNo + 1) + "]: Device Clear/Connect Error: " + ex.Message.ToString();
                 log.LogText(logMsg);
                 return false;
@@ -218,7 +245,7 @@ namespace ZooTurnstileSync
                     }
                     catch (Exception ex)
                     {
-                        log.LogText("Turnstile[" + (devNo + 1) + "]: Exception: " + ex.Message.ToString() + System.Environment.NewLine);
+                        log.LogText("Turnstile[" + (devNo + 1) + "]: Exception inside AddTicket: " + ex.Message.ToString() + System.Environment.NewLine);
                         Disconect();
                     }
                 }
@@ -235,7 +262,7 @@ namespace ZooTurnstileSync
                         }
                         catch (Exception ex)
                         {
-                            log.LogText("Turnstile[" + (devNo + 1) + "]: Exception: " + ex.Message.ToString() + System.Environment.NewLine);
+                            log.LogText("Turnstile[" + (devNo + 1) + "]: Exception inside AddTicket: " + ex.Message.ToString() + System.Environment.NewLine);
                             Disconect();
                         }
                     }
@@ -281,7 +308,7 @@ namespace ZooTurnstileSync
                     }
                     catch (Exception ex)
                     {
-                        logStr = logStr + "Turnstile[" + (devNo + 1) + "]: Exception: " + ex.Message.ToString() + System.Environment.NewLine;
+                        logStr = logStr + "Turnstile[" + (devNo + 1) + "]: Exception inside RemoveTicket: " + ex.Message.ToString() + System.Environment.NewLine;
                         Disconect();
                     }
                 }
@@ -297,7 +324,7 @@ namespace ZooTurnstileSync
                         }
                         catch (Exception ex)
                         {
-                            logStr = logStr + "Turnstile[" + (devNo + 1) + "]: Exception: " + ex.Message.ToString() + System.Environment.NewLine;
+                            logStr = logStr + "Turnstile[" + (devNo + 1) + "]: Exception inside RemoveTicket: " + ex.Message.ToString() + System.Environment.NewLine;
                             Disconect();
                         }
                     }
@@ -336,6 +363,7 @@ namespace ZooTurnstileSync
         public void CheckRTLog()
         {
             //LogText("\"timerRTLog_Tick\" Called.");
+            RTLTimer.Change(Timeout.Infinite, Timeout.Infinite);
             int ret = 0, buffersize = 10256;
             string str1 = "";
             string[] tmp1 = null;
@@ -355,9 +383,11 @@ namespace ZooTurnstileSync
                     {
                         ret = GetRTLog(h, ref buffer[0], buffersize);
                     }
-                    catch(Exception e)
+                    catch (Exception ex)
                     {
-
+                        log.LogText("Turnstile[" + (devNo + 1) + "]: Exception inside CheckRTLog: " + ex.Message.ToString() + System.Environment.NewLine);
+                        Disconect();
+                        return;
                     }
                 }
                 if (ret >= 0)
@@ -410,36 +440,39 @@ namespace ZooTurnstileSync
                             }
                         }
                     }
+                    RTLTimer.Change(rtLogTime, rtLogTime);
+
+                    ui.ChangeStatus(devNo, "Connected...", Color.Green);
                 }
                 else
                 {
                     // device is disconnected in this state
+                    log.LogText("Turnstile[" + (devNo + 1) + "]: ERROR: GetRTLog return false. Disconnecting.");
                     Disconect();
-                    /*
-                    ui.ChangeStatus(devNo, "Disconnected", Color.Red);
-                    h= IntPtr.Zero;*/
-                    //connectDevice(device);
                 }
-            }/*
-            else
-            {
-                if(syncCount++ >= reconMax)     //Wait "reconMax" times to reconnect
-                {
-                    syncCount = 0;
-                    log.LogText("Turnstile[" + (devNo + 1) + "]: Reconnecting...");
-                    Connect();
-                }
-                //LogText("Connect failed! Device[" + device + "]");
-            }*/
+            }
         }
+
+        [HandleProcessCorruptedStateExceptions]
         public void Disconect()
         {
+            ui.ChangeStatus(devNo, "Not Connected", Color.Black);
             if (IntPtr.Zero != h)
             {
                 string logMsg = "";
                 if (null != RTLTimer)
-                    RTLTimer.Stop();
-                Disconnect(h);
+                    RTLTimer.Change(
+                        Timeout.Infinite,
+                        Timeout.Infinite); //Stop();
+
+                try
+                { 
+                    Disconnect(h);
+                }
+                catch (Exception ex)
+                {
+                    log.LogText("Turnstile[" + (devNo + 1) + "]: Exception inside Disconect: " + ex.Message.ToString() + System.Environment.NewLine);
+                }
                 h = IntPtr.Zero;
                 ui.ChangeStatus(devNo, "Disconnected", Color.Red);
                 logMsg = logMsg + "Turnstile[" + (devNo + 1) + "]: Disconnected" + System.Environment.NewLine;

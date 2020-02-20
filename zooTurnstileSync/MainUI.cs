@@ -2,16 +2,16 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Threading;
 using zooTurnstileSync;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace ZooTurnstileSync
 {
     public partial class MainUI : Form
     {
         public delegate void SafeLog(string logMessage);
-        public delegate void SafeNetStatus(int status);
+        public delegate void SafeNetStatus(string status, Color color);
         public delegate void SafeLblStatus(int device, string status, Color clr);
 
         string liveURL = "https://zims.punjab.gov.pk/apis/ticket/";
@@ -22,10 +22,11 @@ namespace ZooTurnstileSync
         
         string[] ip;
 
-        int syncTime = 1 * 60 * 1000;    //1 Minute
+        int syncTime = 1 * 60 * 1000;    //1 Minute 10000; //
+        int initSyncTime = 5 * 60 * 1000;     // First Sync After 5 Minutes 10000; //
         public static string[] punchedTickets;
 
-        Label[] Lbl;
+        public Label[] Lbl;
         Turnstile[] ts;
         Logs log;
         WEB_API web;
@@ -36,13 +37,17 @@ namespace ZooTurnstileSync
             if (System.Deployment.Application.ApplicationDeployment.IsNetworkDeployed)
             {
                 this.Text = "Zoo Turnstile v" + System.Deployment.Application.ApplicationDeployment.CurrentDeployment.CurrentVersion.ToString();
+                tbApi.Text = localURL;
             }
             else
             {
+                syncTime = 10000;
+                initSyncTime = 10000;
+                tbApi.Text = liveURL;
+
                 this.Text = "Zoo Turnstile";
             }
             log = new Logs(this);
-            tbApi.Text = localURL;
             web = new WEB_API(log, this);
 
             log.LogText("Program Started @ " + DateTime.Now.ToString("MM/dd/yyyy hh:mm tt"));
@@ -87,6 +92,7 @@ namespace ZooTurnstileSync
         {
             string logMsg = "";
             timerSync.Stop();
+            logMsg = "MainUI: Disconnecting all devices." + System.Environment.NewLine;
             foreach (int device in devices)
             {
                 ts[device].Disconect();
@@ -172,26 +178,17 @@ namespace ZooTurnstileSync
             }
         }
 
-        public void LblNetStatusChangeSafe(int status)
+        public void LblNetStatusChangeSafe(string status, Color color)
         {
             if (lblNetStatus.InvokeRequired)
             {
                 var d = new SafeNetStatus(LblNetStatusChangeSafe);
-                lblNetStatus.Invoke(d, new object[] { status });
+                lblNetStatus.Invoke(d, new object[] { status, color });
             }
             else
             {
-                switch (status)
-                {
-                    case 0:
-                        lblNetStatus.ForeColor = Color.Red;
-                        lblNetStatus.Text = "Offline";
-                        break;
-                    case 1:
-                        lblNetStatus.ForeColor = Color.Green;
-                        lblNetStatus.Text = "Online";
-                        break;
-                }
+                lblNetStatus.ForeColor = color;
+                lblNetStatus.Text = status;
             }
         }
 
@@ -231,20 +228,24 @@ namespace ZooTurnstileSync
             punchedTickets = new string[noOfDevices];
             punchedTickets = Enumerable.Repeat("", noOfDevices).ToArray();
             //h = Enumerable.Repeat(IntPtr.Zero, devices.Length).ToArray();
+            Task[] ConThread = new Task[noOfDevices];
             foreach (int device in devices)
             {
                 //ts[device] = new Turnstile(ip[device], device, this, log, web);
-                //ts[device].Connect();
-                ThreadPool.QueueUserWorkItem(ConnectThread, new object[] { device });
+                //ts[device].Connect()
+                ConThread[device] = Task.Factory.StartNew(() =>
+                {
+                    ts[device] = new Turnstile(ip[device], device, this, log, web);
+                    ts[device].ConnectTurnstile();
+                });
+                //ThreadPool.QueueUserWorkItem(ConnectThread, new object[] { device });
             }
         }
-        private void ConnectThread(Object stateInfo)
+        /*private void ConnectThread(int device)
         {
-            object[] array = stateInfo as object[];
-            int device = Convert.ToInt32(array[0]);
             ts[device] = new Turnstile(ip[device], device, this, log, web);
-            ts[device].Connect();
-        }
+            ts[device].ConnectTurnstile();
+        }*/
 
         private void BackgroundWorker1_RunWorkerCompleted(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
         {
@@ -253,7 +254,7 @@ namespace ZooTurnstileSync
             btnStart.Enabled = true;
 
             // timers
-            timerSync.Interval = 5 * 60 * 1000;     // First Sync After 5 Minutes
+            timerSync.Interval = initSyncTime;
             timerSync.Start();
 
             //timerRTLog.Interval = rtLogTime;      // * 1000;
@@ -267,10 +268,13 @@ namespace ZooTurnstileSync
             List<String> addedTickets = new List<String>();
             if (web.CheckNewEntries(ticketString, addedTickets))
             {
+                Task[] SyncThread = new Task[noOfDevices];
                 foreach (int device in devices)
                 {
                     ts[device].SetNewEntries(ticketString, addedTickets);
-                    ThreadPool.QueueUserWorkItem(ts[device].SyncDevice, null);
+                    SyncThread[device] = Task.Factory.StartNew(() => ts[device].SyncDevice());
+                    
+                    //ThreadPool.QueueUserWorkItem(ts[device].SyncDevice, null);
                 }
             }
             timerSync.Interval = syncTime;
