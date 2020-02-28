@@ -82,7 +82,8 @@ namespace ZooTurnstileSync
         {
             try
             {
-                ui.ChangeStatus(devNo, "RTLOG...", Color.Blue);
+                if (ui.isLoggingUI)
+                    ui.ChangeStatus(devNo, "RTLOG...", Color.Blue);
                 CheckRTLog();
             }
             catch (Exception ex)
@@ -101,7 +102,8 @@ namespace ZooTurnstileSync
             else
             {
 
-                ui.ChangeStatus(devNo, "Syncing...", Color.YellowGreen);
+                if (ui.isLoggingUI)
+                    ui.ChangeStatus(devNo, "Syncing...", Color.YellowGreen);
                 if (AddTicket(newTicketString))
                 {
                     web.SyncBackAddedTickets(addedTickets);
@@ -189,7 +191,8 @@ namespace ZooTurnstileSync
             {
                 lock (busy)
                 {
-                    ui.ChangeStatus(devNo, "Flushing...", Color.Blue);
+                    if (ui.isLoggingUI)
+                        ui.ChangeStatus(devNo, "Flushing...", Color.Blue);
                     bool bIsConnected = axCZKEM1.Connect_Net(devIP, 4370);   // 4370 is port no of attendance machine
                     if (bIsConnected == true)
                     {
@@ -442,7 +445,8 @@ namespace ZooTurnstileSync
                     }
                     RTLTimer.Change(rtLogTime, rtLogTime);
 
-                    ui.ChangeStatus(devNo, "Connected...", Color.Green);
+                    if (ui.isLoggingUI)
+                        ui.ChangeStatus(devNo, "Connected...", Color.Green);
                 }
                 else
                 {
@@ -456,6 +460,7 @@ namespace ZooTurnstileSync
         [HandleProcessCorruptedStateExceptions]
         public void Disconect()
         {
+            //if (ui.isLoggingUI)
             ui.ChangeStatus(devNo, "Not Connected", Color.Black);
             if (IntPtr.Zero != h)
             {

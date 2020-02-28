@@ -53,7 +53,7 @@
             this.inputIp2 = new System.Windows.Forms.TextBox();
             this.inputIp1 = new System.Windows.Forms.TextBox();
             this.label10 = new System.Windows.Forms.Label();
-            this.label11 = new System.Windows.Forms.Label();
+            this.lblLogs = new System.Windows.Forms.Label();
             this.lblNetStatus = new System.Windows.Forms.Label();
             this.tbApi = new System.Windows.Forms.TextBox();
             this.tbLogs = new System.Windows.Forms.TextBox();
@@ -61,6 +61,8 @@
             this.timerStart = new System.Windows.Forms.Timer(this.components);
             this.backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
             this.timerSync = new System.Windows.Forms.Timer(this.components);
+            this.rbLogUI = new System.Windows.Forms.RadioButton();
+            this.rbLogFile = new System.Windows.Forms.RadioButton();
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -321,14 +323,14 @@
             this.label10.TabIndex = 2;
             this.label10.Text = "API";
             // 
-            // label11
+            // lblLogs
             // 
-            this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(392, 15);
-            this.label11.Name = "label11";
-            this.label11.Size = new System.Drawing.Size(33, 13);
-            this.label11.TabIndex = 5;
-            this.label11.Text = "Logs:";
+            this.lblLogs.AutoSize = true;
+            this.lblLogs.Location = new System.Drawing.Point(392, 15);
+            this.lblLogs.Name = "lblLogs";
+            this.lblLogs.Size = new System.Drawing.Size(33, 13);
+            this.lblLogs.TabIndex = 5;
+            this.lblLogs.Text = "Logs:";
             // 
             // lblNetStatus
             // 
@@ -346,13 +348,15 @@
             this.tbApi.Size = new System.Drawing.Size(254, 20);
             this.tbApi.TabIndex = 3;
             this.tbApi.Text = "https://zims.punjab.gov.pk/apis/ticket/";
+            this.tbApi.TextChanged += new System.EventHandler(this.tbApi_TextChanged);
             // 
             // tbLogs
             // 
             this.tbLogs.Location = new System.Drawing.Point(395, 39);
-            this.tbLogs.MaxLength = 512;
+            this.tbLogs.MaxLength = 64;
             this.tbLogs.Multiline = true;
             this.tbLogs.Name = "tbLogs";
+            this.tbLogs.ReadOnly = true;
             this.tbLogs.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.tbLogs.Size = new System.Drawing.Size(346, 391);
             this.tbLogs.TabIndex = 4;
@@ -383,13 +387,39 @@
             this.timerSync.Interval = 2000;
             this.timerSync.Tick += new System.EventHandler(this.timerSync_Tick);
             // 
+            // rbLogUI
+            // 
+            this.rbLogUI.AutoSize = true;
+            this.rbLogUI.Location = new System.Drawing.Point(431, 12);
+            this.rbLogUI.Name = "rbLogUI";
+            this.rbLogUI.Size = new System.Drawing.Size(64, 17);
+            this.rbLogUI.TabIndex = 7;
+            this.rbLogUI.Text = "UI + File";
+            this.rbLogUI.UseVisualStyleBackColor = true;
+            this.rbLogUI.CheckedChanged += new System.EventHandler(this.rbLogUI_CheckedChanged);
+            // 
+            // rbLogFile
+            // 
+            this.rbLogFile.AutoSize = true;
+            this.rbLogFile.Checked = true;
+            this.rbLogFile.Location = new System.Drawing.Point(501, 12);
+            this.rbLogFile.Name = "rbLogFile";
+            this.rbLogFile.Size = new System.Drawing.Size(65, 17);
+            this.rbLogFile.TabIndex = 8;
+            this.rbLogFile.TabStop = true;
+            this.rbLogFile.Text = "File Only";
+            this.rbLogFile.UseVisualStyleBackColor = true;
+            this.rbLogFile.CheckedChanged += new System.EventHandler(this.rbLogFile_CheckedChanged);
+            // 
             // MainUI
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(753, 454);
+            this.Controls.Add(this.rbLogFile);
+            this.Controls.Add(this.rbLogUI);
             this.Controls.Add(this.lblNetStatus);
-            this.Controls.Add(this.label11);
+            this.Controls.Add(this.lblLogs);
             this.Controls.Add(this.tbLogs);
             this.Controls.Add(this.tbApi);
             this.Controls.Add(this.label10);
@@ -425,7 +455,7 @@
         private System.Windows.Forms.Label status4;
         private System.Windows.Forms.Label status5;
         private System.Windows.Forms.Label status6;
-        private System.Windows.Forms.Label label11;
+        private System.Windows.Forms.Label lblLogs;
         private System.Windows.Forms.Label lblNetStatus;
         private System.Windows.Forms.TextBox inputIp1;
         private System.Windows.Forms.TextBox inputIp2;
@@ -439,5 +469,7 @@
         private System.Windows.Forms.Timer timerStart;
         private System.ComponentModel.BackgroundWorker backgroundWorker1;
         private System.Windows.Forms.Timer timerSync;
+        private System.Windows.Forms.RadioButton rbLogUI;
+        private System.Windows.Forms.RadioButton rbLogFile;
     }
 }

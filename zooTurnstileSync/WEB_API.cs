@@ -16,15 +16,22 @@ namespace zooTurnstileSync
         private MainUI ui;
         private Logs log;
 
-        public WEB_API(Logs logger, MainUI UI)
+        public string Url { get; private set; }
+
+        public WEB_API(Logs logger, MainUI UI, string uri)
         {
             this.ui = UI;
             this.log = logger;
+            SetApiUrl(uri);
         }
 
+        public void SetApiUrl(string _uri)
+        {
+            this.Url = _uri; 
+        }
         private string GetApiUrl()
         {
-            return ui.getURL();
+            return this.Url;
         }
         public bool CheckActiveEntries(string[] ticketString, List<String> addedTickets)
         {
@@ -244,19 +251,22 @@ namespace zooTurnstileSync
             if (response == null)
             {
                 log.LogText("API ERROR: Null response from API.");
-                ui.LblNetStatusChangeSafe("Error - " + uri, Color.Red);
+                if(ui.isLoggingUI)
+                    ui.LblNetStatusChangeSafe("Error - " + uri, Color.Red);
                 return "";
 
             }
             else if (response.StatusCode == HttpStatusCode.OK)
             {
                 //log.LogText("API OK");
-                ui.LblNetStatusChangeSafe("Online - "+ uri, Color.Green);
+                if (ui.isLoggingUI)
+                    ui.LblNetStatusChangeSafe("Online - "+ uri, Color.Green);
             }
             else         //if (response.StatusCode != HttpStatusCode.OK)
             {
                 log.LogText("API ERROR: " + response.ReasonPhrase.ToString());
-                ui.LblNetStatusChangeSafe("Error - " + uri, Color.Red);
+                if (ui.isLoggingUI)
+                    ui.LblNetStatusChangeSafe("Error - " + uri, Color.Red);
                 return "";
             }
             //MessageBox.Show(response.ReasonPhrase.ToString());

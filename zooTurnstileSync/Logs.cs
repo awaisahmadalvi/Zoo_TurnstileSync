@@ -29,14 +29,18 @@ namespace zooTurnstileSync
                 time = DateTime.Now;
 
                 logMessage = time.ToString("hh:mm:ss tt") + "    " + logMessage + "\r\n";
-
-                ui.WriteTextSafe(logMessage);
-
-                using (var str = new StreamWriter(getPath(), append: true))
+                if (ui.isLoggingUI)
                 {
-                    str.WriteLine(logMessage);
-                    str.Flush();
-                    str.Close();
+                    ui.WriteTextSafe(logMessage);
+                }
+                if (ui.isLoggingFile)
+                {
+                    using (var str = new StreamWriter(getPath(), append: true))
+                    {
+                        str.WriteLine(logMessage);
+                        str.Flush();
+                        str.Close();
+                    }
                 }
             }
         }

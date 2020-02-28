@@ -14,6 +14,9 @@ namespace ZooTurnstileSync
         public delegate void SafeNetStatus(string status, Color color);
         public delegate void SafeLblStatus(int device, string status, Color clr);
 
+        public bool isLoggingUI = false;
+        public bool isLoggingFile = true;
+
         string liveURL = "https://zims.punjab.gov.pk/apis/ticket/";
         string localURL = "http://localhost/zims/apis/ticket/";
 
@@ -48,7 +51,7 @@ namespace ZooTurnstileSync
                 this.Text = "Zoo Turnstile";
             }
             log = new Logs(this);
-            web = new WEB_API(log, this);
+            web = new WEB_API(log, this, tbApi.Text.ToString());
 
             log.LogText("Program Started @ " + DateTime.Now.ToString("MM/dd/yyyy hh:mm tt"));
             Lbl = new Label [noOfDevices] { status1, status2, status3, status4, status5, status6 };
@@ -279,6 +282,39 @@ namespace ZooTurnstileSync
             }
             timerSync.Interval = syncTime;
             timerSync.Start();
+        }
+
+        private void rbLogUI_CheckedChanged(object sender, EventArgs e)
+        {
+            RadioButton rb = sender as RadioButton;
+            if(rb != null)
+            {
+                if (rb.Checked)
+                {
+                    isLoggingUI = true;
+                }
+            }
+        }
+
+        private void rbLogFile_CheckedChanged(object sender, EventArgs e)
+        {
+            RadioButton rb = sender as RadioButton;
+            if (rb != null)
+            {
+                if (rb.Checked)
+                {
+                    isLoggingUI = false;
+                    tbLogs.Clear();
+                }
+            }
+        }
+
+        private void tbApi_TextChanged(object sender, EventArgs e)
+        {
+            if(web != null)
+            {
+                web.SetApiUrl(tbApi.Text.ToString());
+            }
         }
     }
 }
