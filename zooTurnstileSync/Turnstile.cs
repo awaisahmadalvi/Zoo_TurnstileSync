@@ -246,6 +246,11 @@ namespace ZooTurnstileSync
                     {
                         ret = SetDeviceData(h, "user", data, options);
                     }
+                    catch (AccessViolationException ex)
+                    {
+                        log.LogText("Turnstile[" + (devNo + 1) + "]: Access Violation Exception AddTicket: " + ex.Message.ToString() + System.Environment.NewLine);
+                        Disconect();
+                    }
                     catch (Exception ex)
                     {
                         log.LogText("Turnstile[" + (devNo + 1) + "]: Exception inside AddTicket: " + ex.Message.ToString() + System.Environment.NewLine);
@@ -262,6 +267,11 @@ namespace ZooTurnstileSync
                         try
                         {
                             secret = SetDeviceData(h, "userauthorize", accessData, options);
+                        }
+                        catch (AccessViolationException ex)
+                        {
+                            log.LogText("Turnstile[" + (devNo + 1) + "]: Access Violation Exception AddTicket: " + ex.Message.ToString() + System.Environment.NewLine);
+                            Disconect();
                         }
                         catch (Exception ex)
                         {
