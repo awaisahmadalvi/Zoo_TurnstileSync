@@ -63,6 +63,7 @@
             this.timerSync = new System.Windows.Forms.Timer(this.components);
             this.rbLogUI = new System.Windows.Forms.RadioButton();
             this.rbLogFile = new System.Windows.Forms.RadioButton();
+            this.timerRefresh = new System.Windows.Forms.Timer(this.components);
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -411,6 +412,11 @@
             this.rbLogFile.UseVisualStyleBackColor = true;
             this.rbLogFile.CheckedChanged += new System.EventHandler(this.rbLogFile_CheckedChanged);
             // 
+            // timerRefresh
+            // 
+            this.timerRefresh.Interval = 1000;
+            this.timerRefresh.Tick += new System.EventHandler(this.timerRefresh_Tick);
+            // 
             // MainUI
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -471,5 +477,6 @@
         private System.Windows.Forms.Timer timerSync;
         private System.Windows.Forms.RadioButton rbLogUI;
         private System.Windows.Forms.RadioButton rbLogFile;
+        private System.Windows.Forms.Timer timerRefresh;
     }
 }

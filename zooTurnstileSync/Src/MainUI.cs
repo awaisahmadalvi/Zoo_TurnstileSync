@@ -25,6 +25,7 @@ namespace ZooTurnstileSync
         
         string[] ip;
 
+        int refreshTime = 5 * 60 * 1000;
         int syncTime = 1 * 60 * 1000;    //1 Minute 10000; //
         int initSyncTime = 5 * 60 * 1000;     // First Sync After 5 Minutes 10000; //
         public static string[] punchedTickets;
@@ -260,6 +261,9 @@ namespace ZooTurnstileSync
             timerSync.Interval = initSyncTime;
             timerSync.Start();
 
+            timerRefresh.Interval = refreshTime;
+            timerRefresh.Start();
+
             //timerRTLog.Interval = rtLogTime;      // * 1000;
             //timerRTLog.Start();
         }
@@ -314,6 +318,26 @@ namespace ZooTurnstileSync
             if(web != null)
             {
                 web.SetApiUrl(tbApi.Text.ToString());
+            }
+        }
+
+        private void timerRefresh_Tick(object sender, EventArgs e)
+        {
+            //string logMsg = "Timer Refresh...";
+            //log.LogText(logMsg);
+            devices = GetConnectableDev();
+            foreach (int device in devices)
+            {
+                if (Lbl[device].Text == "Disconnected" || Lbl[device].Text == "Not Connected")
+                {
+                    //logMsg = "Connecting in refresh: " + device;
+                    //log.LogText(logMsg); 
+                    Task reconThread = Task.Factory.StartNew(() =>
+                    {
+                        ts[device] = new Turnstile(ip[device], device, this, log, web);
+                        ts[device].ConnectTurnstile();
+                    });
+                }                
             }
         }
     }

@@ -51,6 +51,7 @@ namespace ZooTurnstileSync
         private static readonly object busy = new object();
         private Timer RTLTimer;
         int rtLogTime = 3000;
+        int rtlTryNo = 0;
 
         private string[] newTicketString = { "", "" };
         List<String> addedTickets = new List<String>();
@@ -394,6 +395,7 @@ namespace ZooTurnstileSync
                 {
                     try
                     {
+                        rtlTryNo++; 
                         ret = GetRTLog(h, ref buffer[0], buffersize);
                     }
                     catch (Exception ex)
@@ -405,6 +407,8 @@ namespace ZooTurnstileSync
                 }
                 if (ret >= 0)
                 {
+                    rtlTryNo = 0;   // resetting the RTLog try counter
+
                     //if(devNo == 1)
                     //    MainUI.punchedTickets = Enumerable.Repeat("61", MainUI.punchedTickets.Length).ToArray();
 
@@ -453,7 +457,6 @@ namespace ZooTurnstileSync
                             }
                         }
                     }
-                    RTLTimer.Change(rtLogTime, rtLogTime);
 
                     if (ui.isLoggingUI)
                         ui.ChangeStatus(devNo, "Connected...", Color.Green);
@@ -461,9 +464,17 @@ namespace ZooTurnstileSync
                 else
                 {
                     // device is disconnected in this state
-                    log.LogText("Turnstile[" + (devNo + 1) + "]: ERROR: GetRTLog return false. Disconnecting.");
-                    Disconect();
+                    log.LogText("Turnstile[" + (devNo + 1) + "]: ERROR: GetRTLog return false.");
+                    ui.ChangeStatus(devNo, "RTLog Error", Color.Red);
+                    if (rtlTryNo >= 3)
+                    {
+                        rtlTryNo = 0;
+                        log.LogText("Turnstile[" + (devNo + 1) + "]: Disconnecting");
+                        Disconect();
+                        return;
+                    }
                 }
+                RTLTimer.Change(rtLogTime, rtLogTime);
             }
         }
 
