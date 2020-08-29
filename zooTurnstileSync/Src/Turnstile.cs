@@ -264,6 +264,7 @@ namespace ZooTurnstileSync
                 }
                 if (ret >= 0)
                 {
+                    rtlTryNo = 0;   // resetting the RTLog try counter
                     //LogText("Card No "+cn+" add successfully",Color.Black);
                     //adding access
                     int secret = -1;
@@ -345,6 +346,7 @@ namespace ZooTurnstileSync
                 }
                 if (ret >= 0)
                 {
+                    rtlTryNo = 0;   // resetting the RTLog try counter
                     logStr = "Turnstile[" + (devNo + 1) + "]: Ticket removed " + ePin + System.Environment.NewLine;
                     int secret = -1;
                     lock (busy)
@@ -516,6 +518,7 @@ namespace ZooTurnstileSync
                     log.LogText("Turnstile[" + (devNo + 1) + "]: Exception inside Disconect: " + ex.Message.ToString() + System.Environment.NewLine);
                 }
                 h = IntPtr.Zero;
+                rtlTryNo = 0;   // resetting the RTLog try counter
                 ui.ChangeStatus(devNo, "Disconnected", Color.Red);
                 logMsg = logMsg + "Turnstile[" + (devNo + 1) + "]: Disconnected" + System.Environment.NewLine;
 

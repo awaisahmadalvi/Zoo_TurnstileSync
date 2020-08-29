@@ -228,8 +228,8 @@ namespace ZooTurnstileSync
         {
             DisconnectAll();
             devices = GetConnectableDev();
-            punchedTickets = new string[noOfDevices];
-            punchedTickets = Enumerable.Repeat("", noOfDevices).ToArray();
+            //punchedTickets = new string[noOfDevices];
+            //punchedTickets = Enumerable.Repeat("", noOfDevices).ToArray();
             //h = Enumerable.Repeat(IntPtr.Zero, devices.Length).ToArray();
             Task[] ConThread = new Task[noOfDevices];
             foreach (int device in devices)
