@@ -8,6 +8,7 @@ using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Collections;
+using System.Collections.Concurrent;
 
 namespace ZooTurnstileSync
 {
@@ -45,7 +46,7 @@ namespace ZooTurnstileSync
         // array of punched tickets to check if these are consumed
         private TicketPunched tp;
 
-        public Queue tpQueue;
+        public ConcurrentQueue<TicketPunched> tpQueue;
 
         private MainUI ui;
         private Logs log;
@@ -69,7 +70,7 @@ namespace ZooTurnstileSync
             this.web = WEB;
 
             this.tp = new TicketPunched();
-            this.tpQueue = new Queue();
+            this.tpQueue = new ConcurrentQueue<TicketPunched>();
         }
 
 
@@ -315,14 +316,11 @@ namespace ZooTurnstileSync
             TicketPunched tp_remove;
             if (ePin == "")
             {
-                try
+                if(!tpQueue.TryDequeue(out tp_remove))
                 {
-                    tp_remove = (TicketPunched)tpQueue.Dequeue();
+                    return "Turnstile[" + (devNo + 1) + "]: No Ticket to remove."+ System.Environment.NewLine;
                 }
-                catch (InvalidOperationException ex)
-                {
-                    return "Turnstile[" + (devNo + 1) + "]: Exception inside RemoveTicket: " + ex.Message.ToString() + System.Environment.NewLine;
-                }
+                //catch (InvalidOperationException ex)
                 ePin = tp_remove.ePin;
             }
             string data = "Pin=" + ePin;
@@ -407,7 +405,7 @@ namespace ZooTurnstileSync
             {
                 while (tpQueue.Count > 0)
                 {
-                    log.LogText(RemoveTicket(""));
+                    log.LogText(RemoveTicket(""));  // Remove tickets from queue ""
                 }
                 lock (busy)
                 {
