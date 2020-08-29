@@ -22,14 +22,13 @@ namespace ZooTurnstileSync
 
         int[] devices = { };
         const int noOfDevices = 6;
-        
+
         string[] ip;
 
         int refreshTime = 5 * 60 * 1000;
         int syncTime = 1 * 60 * 1000;    //1 Minute 10000; //
         int initSyncTime = 5 * 60 * 1000;     // First Sync After 5 Minutes 10000; //
-        public static string[] punchedTickets;
-
+        
         public Label[] Lbl;
         Turnstile[] ts;
         Logs log;
@@ -60,7 +59,7 @@ namespace ZooTurnstileSync
 
             ts = new Turnstile[noOfDevices];
         }
-        
+
         private void BtnStart_Click(object sender, EventArgs e)
         {
             if (btnStart.Text == "Disconnect")
@@ -168,7 +167,7 @@ namespace ZooTurnstileSync
                 tbLogs.SelectedText = logMessage;
             }
         }
-        public void ChangeStatus(int device,string status, Color clr)
+        public void ChangeStatus(int device, string status, Color clr)
         {
             if (tbLogs.InvokeRequired)
             {
@@ -280,7 +279,7 @@ namespace ZooTurnstileSync
                 {
                     ts[device].SetNewEntries(ticketString, addedTickets);
                     SyncThread[device] = Task.Factory.StartNew(() => ts[device].SyncDevice());
-                    
+
                     //ThreadPool.QueueUserWorkItem(ts[device].SyncDevice, null);
                 }
             }
@@ -291,7 +290,7 @@ namespace ZooTurnstileSync
         private void rbLogUI_CheckedChanged(object sender, EventArgs e)
         {
             RadioButton rb = sender as RadioButton;
-            if(rb != null)
+            if (rb != null)
             {
                 if (rb.Checked)
                 {
@@ -315,7 +314,7 @@ namespace ZooTurnstileSync
 
         private void tbApi_TextChanged(object sender, EventArgs e)
         {
-            if(web != null)
+            if (web != null)
             {
                 web.SetApiUrl(tbApi.Text.ToString());
             }
@@ -337,7 +336,15 @@ namespace ZooTurnstileSync
                         ts[device] = new Turnstile(ip[device], device, this, log, web);
                         ts[device].ConnectTurnstile();
                     });
-                }                
+                }
+            }
+        }
+
+        public void InformTicketPunched(TicketPunched tp)
+        {
+            foreach (int device in devices)
+            {
+                ts[device].tpQueue.Enqueue(tp);
             }
         }
     }

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Threading;
+using System.Collections;
 
 namespace ZooTurnstileSync
 {
@@ -42,7 +43,9 @@ namespace ZooTurnstileSync
         //int syncCount = 0;
         //int reconMax = 30;   //3 Minutes = syncTime * reconMax
         // array of punched tickets to check if these are consumed
-        private ticketPunched tp;
+        private TicketPunched tp;
+
+        public Queue tpQueue;
 
         private MainUI ui;
         private Logs log;
@@ -65,7 +68,8 @@ namespace ZooTurnstileSync
             this.log = logger;
             this.web = WEB;
 
-            this.tp = new ticketPunched();
+            this.tp = new TicketPunched();
+            this.tpQueue = new Queue();
         }
 
 
@@ -307,6 +311,19 @@ namespace ZooTurnstileSync
         public string RemoveTicket(string ePin)
         {
             int ret = 0;
+            TicketPunched tp_remove;
+            if (ePin == "")
+            {
+                try
+                {
+                    tp_remove = (TicketPunched)tpQueue.Dequeue();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return "Turnstile[" + (devNo + 1) + "]: Exception inside RemoveTicket: " + ex.Message.ToString() + System.Environment.NewLine;
+                }
+                ePin = tp_remove.ePin;
+            }
             string data = "Pin=" + ePin;
             string options = "";
             //this.log.LogText("ASDTurnstile[" + (devNo + 1) + "]: Ticket removed " + ePin + System.Environment.NewLine);
@@ -386,10 +403,9 @@ namespace ZooTurnstileSync
             
             if (IntPtr.Zero != h)
             {
-                if ("" != MainUI.punchedTickets[devNo])
+                while (tpQueue.Count > 0)
                 {
-                    log.LogText(RemoveTicket(MainUI.punchedTickets[devNo]));
-                    MainUI.punchedTickets[devNo] = "";
+                    log.LogText(RemoveTicket(""));
                 }
                 lock (busy)
                 {
@@ -426,7 +442,7 @@ namespace ZooTurnstileSync
 
                             //log.LogText("Device "+ devNo +" LOG: " + str);
 
-                            string eTime = tmp2[0];
+                            //string eTime = tmp2[0];
                             string ePin = tmp2[1];
                             string eCard = tmp2[2];
                             string eAuthorized = tmp2[4];
@@ -434,15 +450,14 @@ namespace ZooTurnstileSync
                             // eAuthorized 200 is DOOR OPENED
                             if (eAuthorized == "200" || eAuthorized == "102")
                             {
-                                string logMsg = "Turnstile[" + (devNo + 1) + "]: Ticket consumed " + tp.ePin + System.Environment.NewLine;
+                                string logMsg = "Turnstile[" + (devNo + 1) + "]: Ticket consumed " + tp.ePin + "QR:" + eCard + System.Environment.NewLine;
                                 logMsg = logMsg + RemoveTicket(tp.ePin);
-                                /*for (int i = 0 ; i < MainUI.punchedTickets.Length ; i++)
-                                {
-                                    MainUI.punchedTickets[i] = tp.ePin;
-                                }*/
 
+                                // inform all turnstiles to remove this ticket , populate individual tpQueue
+                                // on other turnstiles, all tickets of tpQueue will be removed at start of RTLog
+                                ui.InformTicketPunched(tp);
 
-                                MainUI.punchedTickets = Enumerable.Repeat(tp.ePin, MainUI.punchedTickets.Length).ToArray();
+                                //MainUI.punchedTickets = Enumerable.Repeat(tp.ePin, MainUI.punchedTickets.Length).ToArray();
                                 // remove entry api call here
                                 log.LogText(logMsg);
                                 web.SyncDelete(tp.ePin);
@@ -450,9 +465,10 @@ namespace ZooTurnstileSync
                             // eAuthorized 0 is Valid Card
                             else if (eAuthorized == "0" || eAuthorized == "1")
                             {
-                                tp.eTime = eTime;
+                                //tp.eTime = eTime;
                                 tp.ePin = ePin;
                                 tp.eCard = eCard;
+                                tpQueue.Enqueue(tp);
                                 log.LogText("Turnstile[" + (devNo + 1) + "]: Ticket verified " + tp.ePin);
                             }
                         }

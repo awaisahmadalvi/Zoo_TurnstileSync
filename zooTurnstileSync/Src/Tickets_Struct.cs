@@ -36,9 +36,9 @@ namespace ZooTurnstileSync
         public string message { get; set; }
 
     }
-    public class ticketPunched
+    public class TicketPunched
     {
-        public string eTime { get; set; }
+        //public string eTime { get; set; }
         public string ePin { get; set; }
         public string eCard { get; set; }
     }
