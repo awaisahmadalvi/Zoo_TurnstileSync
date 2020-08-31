@@ -450,8 +450,9 @@ namespace ZooTurnstileSync
                             // eAuthorized 200 is DOOR OPENED
                             if (eAuthorized == "200" || eAuthorized == "102")
                             {
-                                string logMsg = "Turnstile[" + (devNo + 1) + "]: Ticket consumed " + tp.ePin + "QR:" + eCard + System.Environment.NewLine;
+                                string logMsg = "Turnstile[" + (devNo + 1) + "]: Ticket consumed " + tp.ePin + ", QR: " + eCard + System.Environment.NewLine;
                                 logMsg = logMsg + RemoveTicket(tp.ePin);
+                                tpQueue.Enqueue(tp);
 
                                 // inform all turnstiles to remove this ticket , populate individual tpQueue
                                 // on other turnstiles, all tickets of tpQueue will be removed at start of RTLog
@@ -468,7 +469,6 @@ namespace ZooTurnstileSync
                                 //tp.eTime = eTime;
                                 tp.ePin = ePin;
                                 tp.eCard = eCard;
-                                tpQueue.Enqueue(tp);
                                 log.LogText("Turnstile[" + (devNo + 1) + "]: Ticket verified " + tp.ePin);
                             }
                         }
